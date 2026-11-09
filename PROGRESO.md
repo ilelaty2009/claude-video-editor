@@ -39,5 +39,5 @@ Este archivo (más el historial de git) es la memoria del trabajo. Si la sesión
   valores por defecto de Remotion (4 hilos, caché de video hasta 1,4 GB) los renders se trababan (una parte de 10 s:
   16 min, 93 % del tiempo esperando memoria). Decisión: en Macs de ≤ 8 GB o con < 2,5 GB libres se usan 2 hilos y
   caché de 256 MB, partes de 6 s, espera por cuadro de 15 min y 4 intentos por parte; y se avisa que cerrar apps acelera.
-- Nombre/correo de git: el primer commit quedó como "Pablo <pablo@users.noreply.github.com>"; desde el segundo se usa
-  "Pablo <350574886+ilelaty2009@users.noreply.github.com>" (correo privado de GitHub de tu cuenta, no tu correo real).
+- Nombre/correo de git: "Pablo <350574886+ilelaty2009@users.noreply.github.com>" (correo privado de GitHub de tu
+  cuenta, no tu correo real) en todos los commits.
