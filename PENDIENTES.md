@@ -23,6 +23,6 @@ Lo que NO quedó hecho o NO se pudo verificar en esta sesión. Nada de esto romp
 - **Recorte vertical que sigue la cara**: el seguimiento de cara mueve los zooms; el recorte de `reel`/`recorte` sigue
   siendo fijo (centrado en la posición promedio de la cara). Hacerlo dinámico exige recortar en Remotion en vez de
   ffmpeg y volver a medir rendimiento; con 8 GB de RAM no convenía.
-- **Identidad de git**: los commits dicen `Pablo <pablo@users.noreply.github.com>`. Para que GitHub los asocie a tu
-  cuenta, cambia el correo por el "noreply" de tu cuenta (GitHub → Settings → Emails) con
-  `git config user.email TU_CORREO_NOREPLY` (los commits viejos se quedan como están).
+- **Identidad de git**: el primer commit dice `Pablo <pablo@users.noreply.github.com>` (correo que no es de tu
+  cuenta). Los commits nuevos usan `350574886+ilelaty2009@users.noreply.github.com`, el correo privado de tu cuenta
+  ilelaty2009. En tu Mac: `git config user.email 350574886+ilelaty2009@users.noreply.github.com`.
