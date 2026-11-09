@@ -1,0 +1,22 @@
+{
+ "titulo": "La fotosíntesis en 1 minuto",
+ "correcciones": [{"buscar": "3", "reemplazo": "tres"}, {"buscar": "tierra.", "reemplazo": "Tierra."}],
+ "destacadas": [
+  {"palabra": "fotosíntesis", "emoji": "🌿", "color": "#39FF88", "zoom": true},
+  {"palabra": "glucosa", "emoji": "🍬", "color": "#FFD400", "zoom": true},
+  {"palabra": "oxígeno", "emoji": "💨", "color": "#4FD6FF", "zoom": true}
+ ],
+ "capitulos": [{"desde": 5.0, "texto": "🌱 Qué necesita"}, {"desde": 13.8, "texto": "💨 Qué produce"}],
+ "escenas": [
+  {"tipo": "lista", "desde": 5.0, "hasta": 9.9, "entrada": "barrido", "titulo": "Las plantas toman",
+   "items": [{"texto": "☀️ Luz del sol", "en": 7.16}, {"texto": "💧 Agua", "en": 8.14}, {"texto": "🫧 Dióxido de carbono", "en": 8.54}]},
+  {"tipo": "titular", "desde": 10.0, "hasta": 13.7, "fondo": true, "entrada": "zoom", "arriba": "Con eso fabrican",
+   "lineas": [{"texto": "SU PROPIO"}, {"texto": "ALIMENTO", "color": "#FFC94D", "en": 11.56}]},
+  {"tipo": "tarjetas", "desde": 14.8, "hasta": 19.0, "entrada": "luz", "titulo": "Como resultado",
+   "tarjetas": [{"texto": "OXÍGENO", "tipo": "si", "en": 16.58}, {"texto": "AIRE", "tipo": "si", "en": 17.66}]},
+  {"tipo": "titular", "desde": 19.2, "hasta": 23.0, "lado": "centro", "vertical": "centro", "fondo": true, "entrada": "suave",
+   "arriba": "Sin las plantas", "lineas": [{"texto": "NO HABRÍA"}, {"texto": "VIDA", "color": "#5CC8FF", "en": 21.96}]}
+ ],
+ "cierre": {"titulo": "¡Gracias!", "subtitulo": "La fotosíntesis", "linea": "Video de demostración"},
+ "portada": {"arriba": "En 1 minuto", "lineas": [{"texto": "FOTO"}, {"texto": "SÍNTESIS", "color": "#FFC94D"}], "etiqueta": "Ciencias"}
+}

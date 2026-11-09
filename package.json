@@ -1,0 +1,33 @@
+{
+  "name": "claude-video-editor",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Editor de videos con Claude Code: Whisper transcribe, Claude decide, Remotion renderiza a 60 fps. / Video editor driven by Claude Code: Whisper transcribes, Claude decides, Remotion renders at 60 fps.",
+  "license": "MIT",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "editar": "bash scripts/editar.sh",
+    "studio": "remotion studio src/index.ts",
+    "test": "npm run tipos && vitest run && .venv/bin/python -m unittest discover -s pruebas -p 'test_*.py'",
+    "tipos": "tsc --noEmit",
+    "prueba:render": "bash scripts/prueba_completa.sh",
+    "medir-fuentes": "node scripts/medir_fuentes.mjs"
+  },
+  "dependencies": {
+    "@remotion/captions": "4.0.537",
+    "@remotion/cli": "4.0.537",
+    "@remotion/fonts": "4.0.537",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "remotion": "4.0.537"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "fontkit": "2.0.4",
+    "typescript": "^5.6.0",
+    "vitest": "3.2.4"
+  }
+}

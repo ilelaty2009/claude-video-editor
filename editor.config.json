@@ -1,0 +1,73 @@
+{
+  "_leeme": "Configuración del editor. Lo normal es usar un preset: --preset colegio-tv o --preset tiktok. Lo que pongas en la línea de comandos manda sobre el preset. Explicación de cada campo en LEEME.md.",
+  "fps": 60,
+
+  "presets": {
+    "colegio-tv": {
+      "_para": "Trabajos del colegio que se ven en TV o proyector",
+      "formato": "tv",
+      "estilo": "clase",
+      "calidad": "final"
+    },
+    "tiktok": {
+      "_para": "TikTok / Reels / Shorts",
+      "formato": "reel",
+      "estilo": "tiktok",
+      "calidad": "final"
+    },
+    "youtube": {
+      "_para": "Videos más largos para YouTube",
+      "formato": "tv",
+      "estilo": "youtube",
+      "calidad": "final"
+    },
+    "documental": {
+      "_para": "Historia y temas serios",
+      "formato": "tv",
+      "estilo": "documental",
+      "calidad": "final"
+    }
+  },
+
+  "formatos": {
+    "tv":      { "ancho": 1920, "alto": 1080, "nombre": "16:9 horizontal (TV, proyector, YouTube)", "encuadre": "completo",
+                 "zonaSegura": { "arriba": 0.06, "abajo": 0.07, "izquierda": 0.05, "derecha": 0.05 } },
+    "reel":    { "ancho": 1080, "alto": 1920, "nombre": "9:16 vertical (TikTok, Reels, Shorts)", "encuadre": "auto",
+                 "zonaSegura": { "arriba": 0.12, "abajo": 0.2, "izquierda": 0.06, "derecha": 0.13 } },
+    "cuadrado":{ "ancho": 1080, "alto": 1080, "nombre": "1:1 cuadrado (feed de Instagram)", "encuadre": "relleno",
+                 "zonaSegura": { "arriba": 0.06, "abajo": 0.08, "izquierda": 0.06, "derecha": 0.06 } },
+    "retrato": { "ancho": 1080, "alto": 1350, "nombre": "4:5 vertical (feed de Instagram/Facebook)", "encuadre": "relleno",
+                 "zonaSegura": { "arriba": 0.06, "abajo": 0.1, "izquierda": 0.06, "derecha": 0.06 } }
+  },
+
+  "calidades": {
+    "preview": { "_para": "Vista rápida a media resolución para revisar", "escala": 0.5, "crf": 26, "x264Preset": "veryfast",
+                 "imagen": "jpeg", "calidadJpeg": 80, "audioKbps": 128 },
+    "final":   { "_para": "Para entregar (TikTok, WhatsApp, proyector)", "escala": 1, "crf": 17, "x264Preset": "medium",
+                 "imagen": "jpeg", "calidadJpeg": 95, "audioKbps": 192 },
+    "maxima":  { "_para": "Máxima calidad para GUARDAR (pesa el doble; sale en H.264 nivel 5.0, que algunos TV y proyectores viejos no leen: para presentar usa final)", "escala": 1, "crf": 12, "x264Preset": "slow",
+                 "imagen": "png", "calidadJpeg": 100, "audioKbps": 320 }
+  },
+
+  "audio": {
+    "lufs": -14,
+    "picoMaximoDbtp": -1.0,
+    "_lufs": "-14 LUFS = volumen estándar de TikTok/YouTube. Pico real máximo -1 dBTP = nunca satura."
+  },
+
+  "render": {
+    "segundosPorParte": 6,
+    "_segundosPorParte": "El video se renderiza por partes; si se interrumpe, al volver a correr solo hace las que faltan."
+  },
+
+  "estilos": {
+    "clase":      { "look": "cine",   "subtitulos": "cine",   "color": "natural", "ritmo": 8, "sfx": true, "barraProgreso": false, "cierre": true,
+                    "musica": { "animo": "calma",   "volumen": 0.12, "volumenHablando": 0.035 } },
+    "tiktok":     { "look": "tiktok", "subtitulos": "tiktok", "color": "vivo",    "ritmo": 3, "sfx": true, "barraProgreso": true,  "cierre": false,
+                    "musica": { "animo": "energia", "volumen": 0.2,  "volumenHablando": 0.06 } },
+    "youtube":    { "look": "cine",   "subtitulos": "cine",   "color": "cine",    "ritmo": 5, "sfx": true, "barraProgreso": false, "cierre": true,
+                    "musica": { "animo": "lofi",    "volumen": 0.18, "volumenHablando": 0.055 } },
+    "documental": { "look": "cine",   "subtitulos": "cine",   "color": "cine",    "ritmo": 7, "sfx": true, "barraProgreso": false, "cierre": true,
+                    "musica": { "animo": "epica",   "volumen": 0.16, "volumenHablando": 0.05 } }
+  }
+}

@@ -1,0 +1,43 @@
+node_modules/
+.venv/
+trabajo/
+salida/
+public/input.mp4
+.tools/
+
+# Videos y audio pesados (se quedan solo en tu Mac)
+videos/
+referencias/
+*.mp4
+*.mov
+*.mkv
+*.avi
+
+# Claves y archivos privados
+.env
+.env.*
+*.pem
+*.key
+.claude/settings.local.json
+
+# Basura del sistema
+.DS_Store
+*.log
+
+# Archivos generados por el editor (se rehacen solos)
+public/edit.json
+public/portada.json
+public/portada/
+public/musica/auto*.wav
+*.tmp.*
+__pycache__/
+
+# B-roll propio (puede tener personas o derechos de terceros): se queda en tu Mac
+public/broll/*
+!public/broll/LEEME.txt
+# Skills de Remotion: las instala instalar.command (repositorio remotion-dev/skills, sin licencia visible)
+.claude/skills/
+skills-lock.json
+# Salidas del video de demostración
+demo/*.mov
+demo/voz.*
