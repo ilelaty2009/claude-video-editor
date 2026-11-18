@@ -23,7 +23,7 @@ No necesitas saber editar: tú solo dices qué te gusta y qué no. Todo corre en
 
 ## ✨ Qué hace
 
-| | |
+| Área | Qué hace |
 |---|---|
 | ✂️ **Edición** | Corta silencios, muletillas y frases repetidas · zooms que siguen la cara · gancho al inicio · varios clips en uno · editar borrando texto |
 | 💬 **Subtítulos** | Palabra por palabra (karaoke), 5 estilos, máximo 2 líneas, sincronizados con la voz y siempre dentro de la zona segura |
@@ -45,14 +45,13 @@ El video queda en `salida/` con su portada y sus subtítulos.
 ## ⚙️ Cómo funciona
 
 ```mermaid
-flowchart LR
-    A[🎥 Tu video] --> B[Whisper<br/>transcribe palabra por palabra]
-    B --> C[Claude lee y planea<br/>cortes · escenas · títulos]
-    C --> D[Storyboard<br/>Keep / Maybe / Drop]
-    D --> E[Remotion<br/>render a 60 fps]
-    E --> F[Mezcla y master<br/>-14 LUFS]
-    F --> G[✅ Control de calidad]
-    G --> H[📦 Video + portada + .srt]
+flowchart TD
+    A["Tu video"] --> B["Whisper transcribe<br/>palabra por palabra"]
+    B --> C["Claude planea<br/>cortes, escenas y títulos"]
+    C --> D["Storyboard: tú calificas<br/>Keep / Maybe / Drop"]
+    D --> E["Remotion renderiza<br/>a 60 fps"]
+    E --> F["Mezcla, master y<br/>control de calidad"]
+    F --> G["Video + portada + subtítulos .srt"]
 ```
 
 ## 🖼️ Galería
