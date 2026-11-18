@@ -1,16 +1,61 @@
+<p align="center">
+  <img src="docs/portada.png" alt="claude-video-editor: grabas, Claude edita" width="100%">
+</p>
+
+<p align="center">
+  <a href="LICENSE"><img src="https://img.shields.io/badge/licencia-MIT-2ED47A" alt="Licencia MIT"></a>
+  <img src="https://img.shields.io/badge/video-60_fps-5CC8FF" alt="60 fps">
+  <img src="https://img.shields.io/badge/pruebas-179_✓-2ED47A" alt="179 pruebas">
+  <img src="https://img.shields.io/badge/macOS-gratis_y_local-FFC94D" alt="macOS, gratis y local">
+  <a href="https://www.remotion.dev"><img src="https://img.shields.io/badge/Remotion-4-5CC8FF" alt="Remotion 4"></a>
+  <a href="https://claude.com/claude-code"><img src="https://img.shields.io/badge/Claude_Code-listo-FF3B5C" alt="Claude Code"></a>
+</p>
+
+<p align="center"><b>Español</b> · <a href="#english">English</a></p>
+
 # claude-video-editor
 
-**Español** · [English](#english)
-
-Editor de video automático pensado para usarse con [Claude Code](https://claude.com/claude-code): grabas, pones el video en
-`videos/`, y Claude lo edita. Transcribe con Whisper, corta silencios y repeticiones, pone subtítulos palabra por palabra,
-zooms que siguen la cara, títulos (también **detrás de la cabeza**), capítulos, 25 tipos de escenas animadas, **pantalla
-dividida**, banners fijos, storyboard para revisar, tu propia marca,
-gráficas que se construyen solas, mapas con ruta, llamada a la acción animada, b-roll, color, música original con ducking,
-efectos de sonido y censura con pitido. Renderiza con [Remotion](https://www.remotion.dev) **a 60 fps**. Todo corre en tu
-computador, gratis.
+**Editor de video automático para [Claude Code](https://claude.com/claude-code).** Grabas, pones el video en `videos/` y
+le dices a Claude *"edítalo para TikTok"*. Él corta, subtitula, anima, pone música y te entrega el video listo, a 60 fps.
+No necesitas saber editar: tú solo dices qué te gusta y qué no. Todo corre en tu computador, gratis.
 
 ![Demo: subtítulos karaoke y escenas animadas](docs/demo.gif)
+
+## ✨ Qué hace
+
+| | |
+|---|---|
+| ✂️ **Edición** | Corta silencios, muletillas y frases repetidas · zooms que siguen la cara · gancho al inicio · varios clips en uno · editar borrando texto |
+| 💬 **Subtítulos** | Palabra por palabra (karaoke), 5 estilos, máximo 2 líneas, sincronizados con la voz y siempre dentro de la zona segura |
+| 🎬 **Animación** | 25 tipos de escenas (titulares, listas, gráficas, mapas, chat de IA, pantalla dividida…) · títulos **detrás de la cabeza** · b-roll · efectos 3D |
+| 🔊 **Sonido** | Voz limpia · música original compuesta por el editor que baja sola cuando hablas · efectos alineados al cuadro · -14 LUFS |
+| 🎨 **Tu marca** | Colores y fuentes desde tu página web · Brand Lab para escoger estilos · color automático (natural, cine, cálido, vivo) |
+| ✅ **Revisión** | Storyboard Keep / Maybe / Drop · control de calidad automático (fps, volumen, parpadeos, sincronía) · portada y `.srt` |
+| 📐 **Formatos** | TV / proyector 16:9 · TikTok / Reels 9:16 · cuadrado 1:1 · vertical 4:5 |
+
+## 🚀 Empieza en 3 pasos
+
+1. **Descarga** este repositorio (botón verde **Code → Download ZIP**, o `git clone`).
+2. **Instala**: doble clic en **`instalar.command`** (una sola vez, ~1 GB: Node, Python con Whisper, ffmpeg y Remotion).
+3. **Edita**: abre la carpeta con Claude Code, pon tu video en `videos/` y escribe:
+   > *Edita videos/mi-video.mov para el colegio*
+
+El video queda en `salida/` con su portada y sus subtítulos.
+
+## ⚙️ Cómo funciona
+
+```mermaid
+flowchart LR
+    A[🎥 Tu video] --> B[Whisper<br/>transcribe palabra por palabra]
+    B --> C[Claude lee y planea<br/>cortes · escenas · títulos]
+    C --> D[Storyboard<br/>Keep / Maybe / Drop]
+    D --> E[Remotion<br/>render a 60 fps]
+    E --> F[Mezcla y master<br/>-14 LUFS]
+    F --> G[✅ Control de calidad]
+    G --> H[📦 Video + portada + .srt]
+```
+
+## 🖼️ Galería
 
 | 16:9 (TV / proyector) | 9:16 (TikTok / Reels) |
 |---|---|
@@ -38,15 +83,10 @@ Estilos de subtítulos (`--subtitulos`):
 
 *(Todas las imágenes salieron del propio editor, a partir de un video de demostración sin personas: `demo/`.)*
 
-## Instalación (macOS)
-1. Descarga o clona este repositorio.
-2. Doble clic en **`instalar.command`** (instala Node portátil, Python con Whisper y ffmpeg, y Remotion; ~1 GB, una vez).
-   Desde la terminal es lo mismo: `bash instalar.command`.
-3. Comprueba: `npm test`.
-
-## Uso
+## 📖 Uso en detalle
 Con Claude Code: abre la carpeta y pídele *"Edita videos/mi-video.mov para el colegio"* o *"…para TikTok"*.
 Claude sigue las reglas de [`CLAUDE.md`](CLAUDE.md) y aprende de tus correcciones en [`estilo.md`](estilo.md).
+Para comprobar que todo quedó bien instalado: `npm test`.
 
 Sin Claude, un solo comando:
 ```bash
@@ -83,7 +123,7 @@ Más formas de trabajar:
 El resultado queda en `salida/` con su portada (`_portada.jpg`) y subtítulos (`.srt`).
 Toda la configuración vive en [`editor.config.json`](editor.config.json). Ejemplo de extras: [`demo/fotosintesis_extras.json`](demo/fotosintesis_extras.json).
 
-## Qué garantiza (y se comprueba solo)
+## 🛡️ Qué garantiza (y se comprueba solo)
 - **60 fps** siempre; las animaciones están atadas al tiempo, así que se ven suaves aunque el video original sea de 30 fps
   (no se inventan cuadros de la imagen grabada).
 - **Audio**: mezcla final masterizada a **-14 LUFS** con **pico real ≤ -1 dBTP**, medido en el archivo final.
@@ -99,7 +139,7 @@ Toda la configuración vive en [`editor.config.json`](editor.config.json). Ejemp
   sincronía, storyboard, marca, sonidos, clips, guion, animaciones.
   `npm run prueba:render`: edita el demo en 16:9 y 9:16 y pasa el control de calidad.
 
-## Estructura
+## 🗂️ Estructura
 ```
 scripts/editor.py      el flujo completo (lo llama scripts/editar.sh)
 scripts/plan_edit.py   cortes, subtítulos, escenas, capítulos -> public/edit.json
@@ -109,9 +149,10 @@ brand/                 tu marca (colores, fuentes); hyperframes/  efectos en HTM
 src/                   Remotion: Edit.tsx, Subtitulos.tsx, escenas/, subtitulos/, tiempo.ts, formatos.ts
 pruebas/               pruebas automáticas
 editor.config.json     presets, formatos, calidades, audio
+docs/desarrollo/       notas del desarrollo: auditoría inicial, progreso por rondas, pendientes
 ```
 
-## Licencias
+## 📜 Licencias
 - Código de este proyecto: [MIT](LICENSE).
 - **Remotion** tiene licencia propia ([remotion.dev/license](https://www.remotion.dev/license)): **gratis** para personas,
   organizaciones sin ánimo de lucro y empresas con fines de lucro de hasta 3 empleados; empresas más grandes necesitan
@@ -121,19 +162,22 @@ editor.config.json     presets, formatos, calidades, audio
 - HyperFrames (efectos): Apache 2.0; usa GSAP (gratis, licencia propia de GSAP) desde internet al renderizar un efecto.
   MODNet (recorte de personas): Apache 2.0, se descarga solo la primera vez (25 MB). yt-dlp: Unlicense.
 - La música la compone el propio editor y los efectos son sintetizados: no tienen derechos de terceros.
+- Resumen de todo lo de terceros: [AVISOS_TERCEROS.md](AVISOS_TERCEROS.md).
 
 ---
 
 ## English
 
-Automatic video editor designed to be driven by [Claude Code](https://claude.com/claude-code): record, drop the file in
-`videos/`, and Claude edits it. Whisper transcription, silence and retake removal, word-by-word karaoke captions,
-face-tracking punch-in zooms, hook titles, chapters, animated motion-graphics scenes, b-roll, auto color, original
-background music with ducking, and sound effects. Rendered with [Remotion](https://www.remotion.dev) at **60 fps**.
-Runs locally, free.
+**You record. Claude edits.** An automatic video editor driven by [Claude Code](https://claude.com/claude-code): drop a
+clip in `videos/`, say *"edit it for TikTok"*, and get back a finished 60 fps video. Whisper transcription, silence and
+retake removal, word-by-word karaoke captions, face-tracking punch-in zooms, hook titles, chapters, 25 animated
+motion-graphics scenes, b-roll, auto color, original background music with ducking, and sound effects. Rendered with
+[Remotion](https://www.remotion.dev). Runs locally on your Mac, free.
 
-**Install (macOS):** double-click `instalar.command` (portable Node, Python + Whisper + ffmpeg, Remotion; ~1 GB once),
-then run `npm test`.
+**Quick start (macOS):**
+1. Download this repo (**Code → Download ZIP** or `git clone`).
+2. Double-click `instalar.command` (portable Node, Python + Whisper + ffmpeg, Remotion; ~1 GB, once).
+3. Open the folder in Claude Code, put your clip in `videos/` and ask *"Edit videos/my-video.mov for TikTok"*.
 
 **Use:** ask Claude Code *"Edit videos/my-video.mov for TikTok"*, or run it yourself:
 ```bash
@@ -160,3 +204,4 @@ See [COMPARACION.md](COMPARACION.md) for an honest comparison with other editors
 **Licenses:** project code is [MIT](LICENSE). **Remotion has its own license**: free for individuals, non-profits and
 for-profit companies with up to 3 employees; larger companies need a paid company license. Whisper (MIT), ffmpeg
 (LGPL/GPL), UltraFace (MIT), fonts (SIL OFL 1.1, see `public/fuentes/LICENCIAS_FUENTES.txt`). Music and SFX are generated by the editor itself.
+Full list: [AVISOS_TERCEROS.md](AVISOS_TERCEROS.md).

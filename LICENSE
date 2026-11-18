@@ -19,10 +19,3 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-
----
-This license covers the code written for this project. Third-party parts keep their own licenses:
-- Remotion (npm dependency): Remotion License — free for individuals, non-profits and companies with up to
-  3 employees; larger for-profit companies need a Company License. See https://www.remotion.dev/license
-- scripts/modelos/cara_rfb320.onnx: MIT (see scripts/modelos/cara_rfb320_LICENCIA_MIT.txt)
-- public/fuentes/*.woff2 (Inter, Montserrat, Poppins, Anton): SIL Open Font License 1.1
