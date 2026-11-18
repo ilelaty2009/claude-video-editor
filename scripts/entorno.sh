@@ -11,3 +11,8 @@ unset _RAIZ
 # Descargas de modelos de Whisper por HTTP normal (el sistema Xet se traba en algunas redes)
 export HF_HUB_DISABLE_XET=1
 export HF_HUB_DISABLE_TELEMETRY=1
+
+# HyperFrames (efectos): sin telemetría ni avisos de actualización
+export HYPERFRAMES_NO_TELEMETRY=1
+export HYPERFRAMES_NO_UPDATE_CHECK=1
+export DO_NOT_TRACK=1

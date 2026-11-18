@@ -10,8 +10,9 @@ import {
 } from "remotion";
 import type { Palabra } from "./Subtitulos";
 import { estilo } from "./estilo";
-import { fontFamily } from "./fuentes";
+import { fontFamily, fuenteEscenas } from "./fuentes";
 import { aReal, curvas, salida, useConfigDiseno, useCuadro } from "./tiempo";
+import { rectSeguro, Zona } from "./formatos";
 
 const ms2f = (ms: number, fps: number) => Math.round((ms / 1000) * fps);
 
@@ -175,4 +176,68 @@ export const FlashCortes: React.FC<{ inicios: number[] }> = ({ inicios }) => {
     if (frame >= f && frame < f + largo) o = Math.max(o, interpolate(frame, [f, f + largo], [0.22, 0], { easing: curvas.entra }));
   }
   return o > 0 ? <AbsoluteFill style={{ background: "white", opacity: o }} /> : null;
+};
+
+// BANNER FIJO: el gancho que se queda en pantalla (o la llamada a la acción del final), en una píldora blanca.
+// Con pantalla dividida (arriba/abajo) va justo debajo de la unión; si no, arriba dentro de la zona segura.
+// estilos: "pastilla" (blanca, por defecto) | "texto" (texto blanco con sombra, como el título fijo del reel) |
+// "vidrio" (vidrio esmerilado: se ve lo de atrás borroso, borde claro)
+type EstiloBanner = "pastilla" | "texto" | "vidrio";
+const Banner: React.FC<{ texto: string; dividida: number; zona?: Zona; estilo?: EstiloBanner }> = ({ texto, dividida, zona, estilo = "pastilla" }) => {
+  const frame = useCuadro();
+  const { fps, durationInFrames, width, height } = useConfigDiseno();
+  const k = width > height ? height / 1080 : width / 1080;
+  const s = spring({ frame, fps, config: { damping: 15, stiffness: 180 } });
+  const sale = salida(frame, durationInFrames, 7);
+  const r = rectSeguro(width, height, zona); // dentro de la zona segura (no lo tapan los botones de la app)
+  // se desliza junto con la pantalla dividida (dividida = 0 nada … 1 dividida)
+  const top = r.y + 8 * k + (height / 2 + 24 * k - (r.y + 8 * k)) * dividida;
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      <div style={{ position: "absolute", top, left: r.x, width: r.ancho, display: "flex", justifyContent: "center" }}>
+        <div
+          style={{
+            maxWidth: r.ancho,
+            padding: estilo === "texto" ? 0 : `${12 * k}px ${26 * k}px`,
+            borderRadius: 16 * k,
+            background: estilo === "pastilla" ? "white" : estilo === "vidrio" ? "rgba(255,255,255,0.16)" : undefined,
+            backdropFilter: estilo === "vidrio" ? "blur(18px) saturate(1.6)" : undefined,
+            border: estilo === "vidrio" ? `${1.5 * k}px solid rgba(255,255,255,0.45)` : undefined,
+            color: estilo === "pastilla" ? "#111" : "white",
+            fontFamily: fuenteEscenas,
+            fontWeight: estilo === "texto" ? 700 : 800,
+            fontSize: (estilo === "texto" ? 52 : 44) * k,
+            lineHeight: 1.15,
+            textAlign: "center",
+            textShadow: estilo === "pastilla" ? undefined : `0 ${3 * k}px ${14 * k}px rgba(0,0,0,0.6)`,
+            boxShadow: estilo === "texto" ? undefined : `0 ${8 * k}px ${24 * k}px rgba(0,0,0,0.35)`,
+            opacity: Math.min(interpolate(s, [0, 0.5], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }), sale),
+            transform: `translateY(${(1 - s) * -24 * k}px) scale(${interpolate(s, [0, 1], [0.92, 1])})`,
+          }}
+        >
+          {texto}
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+export const Banners: React.FC<{ banners: { texto: string; desdeMs: number; hastaMs: number; estilo?: EstiloBanner }[]; dividida: number; zona?: Zona }> = ({
+  banners,
+  dividida,
+  zona,
+}) => {
+  const { fps } = useVideoConfig();
+  return (
+    <>
+      {banners.map((b, i) => {
+        const desde = ms2f(b.desdeMs, fps);
+        return (
+          <Sequence key={i} from={desde} durationInFrames={Math.max(1, ms2f(b.hastaMs, fps) - desde)} layout="none">
+            <Banner texto={b.texto} dividida={dividida} zona={zona} estilo={b.estilo} />
+          </Sequence>
+        );
+      })}
+    </>
+  );
 };

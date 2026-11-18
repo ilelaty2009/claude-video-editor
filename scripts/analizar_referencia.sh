@@ -2,10 +2,21 @@
 # Prepara un video de referencia (uno cuyo estilo te gusta) para que Claude lo estudie.
 # Saca 2 fotogramas por segundo + cada cambio de plano, y transcribe el audio.
 # Uso: bash scripts/analizar_referencia.sh referencias/ejemplo.mp4
+#      bash scripts/analizar_referencia.sh "https://www.instagram.com/reel/…"   (lo baja con yt-dlp)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 source scripts/entorno.sh
 REF="$1"
+# Si es un link (YouTube, Instagram, TikTok…), se baja primero con yt-dlp a referencias/
+if [[ "$REF" == http* ]]; then
+  [ -x .venv/bin/yt-dlp ] || .venv/bin/pip install -q yt-dlp
+  mkdir -p referencias
+  echo "Bajando la referencia con yt-dlp..."
+  ARCHIVO="$(.venv/bin/yt-dlp --no-progress --no-playlist -f "mp4/best" -o "referencias/%(uploader)s_%(id)s.%(ext)s" --print after_move:filepath "$REF" | tail -1)"
+  [ -f "$ARCHIVO" ] || { echo "PROBLEMA: no pude bajar el video (¿el link es público?)."; exit 2; }
+  REF="$ARCHIVO"
+  echo "  Guardado en $REF"
+fi
 NOMBRE="$(basename "${REF%.*}")"
 OUT="trabajo/ref_${NOMBRE}"
 mkdir -p "$OUT/fotogramas" "$OUT/cambios_de_plano"

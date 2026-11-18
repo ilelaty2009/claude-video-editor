@@ -1,0 +1,19 @@
+{
+ "subtitulos": "etiqueta",
+ "correcciones": [{"buscar": "3", "reemplazo": "tres"}, {"buscar": "tierra.", "reemplazo": "Tierra."}],
+ "banners": [
+  {"texto": "🌿 La fotosíntesis en 1 minuto", "hasta": 13.8},
+  {"texto": "Comenta PLANTAS y te mando el resumen 📩", "desde": 22.9}
+ ],
+ "escenas": [
+  {"tipo": "dividida", "modo": "apilada", "desde": 5.0, "hasta": 9.9, "arriba": "Las plantas toman",
+   "lineas": [{"texto": "☀️ LUZ", "en": 7.16}, {"texto": "💧 AGUA", "en": 8.14}, {"texto": "CO₂", "color": "#5CC8FF", "en": 8.54}]},
+  {"tipo": "titular", "desde": 10.0, "hasta": 13.7, "fondo": true, "entrada": "zoom", "arriba": "Con eso fabrican",
+   "lineas": [{"texto": "SU PROPIO"}, {"texto": "ALIMENTO", "color": "#FFC94D", "en": 11.56}]},
+  {"tipo": "dividida", "modo": "apilada", "desde": 13.9, "hasta": 19.0, "arriba": "Como resultado liberan",
+   "lineas": [{"texto": "OXÍGENO", "color": "#5CC8FF", "en": 16.58}]},
+  {"tipo": "cta", "desde": 22.9, "hasta": 25.0, "usuario": "@pablo", "palabra": "PLANTAS", "titulo": "¿Quieres el resumen?"}
+ ],
+ "cierre": false,
+ "musica": {"animo": "energia", "volumen": 0.16, "volumenHablando": 0.05}
+}

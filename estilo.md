@@ -98,3 +98,40 @@ Los valores técnicos viven en `src/estilo.ts`; aquí van las reglas en palabras
   Voz: además de lo anterior, -1,5 dB en 250 Hz (menos "encierro") y de-esser suave (las "s" no silban).
 - Zooms que siguen la cara si la persona se mueve (recorrido suavizado de la cara principal).
 
+## Ronda 7 (2026-11-09): reel de referencia "6 Claude skills that animate anything" (Instagram, 41 s, 9:16)
+- Pantalla dividida casi todo el video: arriba el contenido (app escribiendo, animaciones, resultados), abajo la persona
+  con la cara centrada. → escena `dividida` (modos apilada, lado, pip).
+- Subtítulos de UNA palabra en una etiqueta negra pequeña, justo en la unión de las dos mitades. → estilo `etiqueta`.
+- Banner blanco fijo con el gancho ("6 Claude skills that animate anything 🤯") debajo de la unión; al final otro con la
+  llamada a la acción ("Follow and comment 'animate'…"). → `banners`.
+- Gráfica que se construye sola con contador (88 → 99.385), mapa con ruta animada, tarjeta Seguir + Comentar con cursor.
+  → escenas `grafica`, `mapa`, `cta`.
+- Investigado (OpusClip, 13,5 M de clips): gancho en los primeros 3 s, subtítulos animados, cambio cada pocos segundos,
+  b-roll, audio limpio y llamada a la acción clara. → aviso `GANCHO:` en el plan; capítulos para YouTube; zonas
+  seguras pintadas en la revisión; censura con pitido.
+
+## Ronda 8 (2026-11-09): lo que DICE el reel — 6 skills que animan cualquier cosa
+- Lo que explica: /zach-d-films (pregunta "¿qué pasaría si…?" → explicación 3D realista), /minimalistic-graphics
+  (formas simples, puntos, animaciones limpias), /stick-figure (caricatura con monitos de palitos), /breakdown
+  (producto desarmado en piezas), /map-route (mapa 3D con ruta animada), /graph (números → gráfica que se construye sola).
+- Hecho en el editor (gratis, local): /minimalista, /palitos, /despiece, /mapa-ruta, /grafica, con voz narrada de macOS
+  (Paulina), música original y 60 fps. No hecho: 3D realista (necesita IA de pago).
+- Look de cada una copiado del reel: minimal = negro + líneas blancas finas + punto con estela; palitos = cielo, cubierta de
+  madera, texto blanco con borde negro arriba; despiece = fondo gris oscuro, isométrico, etiquetas numeradas 01–05 a la
+  derecha; mapa = ciudad blanca isométrica con parques, ruta azul, pastilla "9 min"; gráfica = fondo blanco, número gigante
+  negro arriba, curva negra suave con punto, eje redondeado a la derecha.
+
+## Ronda 9 (2026-11-09): reel "How to make your own AI video editor for free" + guía Claude × Remotion (Michael Ly)
+- Su flujo: instalar (Remotion, HyperFrames, FFmpeg, Whisper, yt-dlp) → carpeta con `public/` y `out/` → aprender el
+  estilo de 3 videos que te gustan (brand sheet) → grabar → planear en un STORYBOARD (Keep / Maybe / Drop por tramo) →
+  render (10–20 min) → publicar. Aquí: `videos/`, `public/`, `salida/`; `analizar_referencia.sh` acepta links;
+  `brand/BRAND.md`; `--storyboard`.
+- Su estilo (copiado como opciones, no impuesto): título fijo arriba en texto blanco simple (banner `texto`); subtítulos
+  blancos de 2–3 palabras con borde; palabra clave en caja amarilla (`"caja": true`); pantalla dividida con fondo crema
+  e ilustraciones; ventana oscura de la app con el texto que se escribe y checklist (escena `ventana`); collage de
+  miniaturas (escena `collage`); cortes de pausas de más de 0,1 s (estilo tiktok: 0,15 s).
+- Reglas anti "AI slop": sin imágenes sobreanimadas, sin serif en itálica, sin movimientos de cámara innecesarios.
+- De la guía: títulos detrás de la cabeza, grabaciones de pantalla con zoom, HyperFrames para 3D, sonidos generados,
+  medir música y efectos contra la voz, buscar cuadros con fallas, re-sincronizar subtítulos con la voz.
+- Medido en dos videos: Whisper marca las palabras 40–48 ms antes de que suenen → los subtítulos se atrasan eso.
+

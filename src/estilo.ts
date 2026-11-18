@@ -1,15 +1,17 @@
-// ESTILO DEL VIDEO — Claude cambia estos valores según estilo.md.
+// ESTILO DEL VIDEO — Claude cambia estos valores según estilo.md. Colores y fuentes de la marca: brand/marca.json.
+import { familiaSegura, marca } from "./marca";
+
 // (Si quieres otro look, pídeselo a Claude en español; no hace falta tocar esto a mano.)
 
 export const estilo = {
   // Subtítulos
-  fuente: "Montserrat" as "Montserrat" | "Poppins" | "Anton" | "Inter",
+  fuente: familiaSegura(marca.fuentes.subtitulos, "Montserrat"), // de brand/marca.json
   pesoFuente: 900,
   tamanoSubtitulo: 78, // px en un video de 1080 de ancho
   mayusculas: true,
   palabrasPorBloque: 3, // cuántas palabras se ven a la vez
   colorTexto: "#FFFFFF",
-  colorPalabraActiva: "#FFD400", // la palabra que estás diciendo
+  colorPalabraActiva: marca.subtitulos?.colorActiva || "#FFD400", // la palabra que estás diciendo
   colorBorde: "#000000",
   grosorBorde: 10,
   posicionVertical: 0.68, // 0 = arriba, 1 = abajo (0.68 evita los botones de TikTok/IG)
@@ -39,7 +41,7 @@ export const estilo = {
     tamanoSubtitulo: 46, // px en un video de 1920 de ancho
     palabrasPorBloque: 5,
     colorTexto: "#FFFFFF",
-    colorPalabraActiva: "#FF3B5C", // rojo
+    colorPalabraActiva: marca.subtitulos?.colorActiva || marca.colores.rojo, // rojo (o el de la marca)
     opacidadPalabrasQueVienen: 0.62, // las palabras que todavía no dice se ven tenues
     posicionVertical: 0.9,
     filtroColor: "contrast(1.06) saturate(1.05) brightness(1.0)",

@@ -163,27 +163,32 @@ def leer_opciones(argv: List[str], cfg: Dict) -> argparse.Namespace:
         prog="bash scripts/editar.sh",
         description="Edita un video de punta a punta. Ejemplo: bash scripts/editar.sh videos/X.mov --preset colegio-tv",
     )
-    ap.add_argument("video", help="el video crudo (por ejemplo videos/mi-video.mov)")
+    ap.add_argument("video", nargs="+", help="el video crudo (o varios: se unen en orden), p. ej. videos/mi-video.mov")
     ap.add_argument("--preset", choices=sorted(cfg["presets"]), help="configuración lista: colegio-tv, tiktok…")
     ap.add_argument("--formato", help="tv (16:9), reel (9:16), cuadrado (1:1) o retrato (4:5)")
     ap.add_argument("--estilo", choices=sorted(cfg["estilos"]), help="clase, tiktok, youtube o documental")
     ap.add_argument("--calidad", choices=sorted(cfg["calidades"]), help="preview (rápida), final o maxima")
-    ap.add_argument("--subtitulos", choices=["tiktok", "cine", "caja", "resaltado"], help="estilo de subtítulos")
+    ap.add_argument("--subtitulos", choices=["tiktok", "cine", "caja", "resaltado", "etiqueta"], help="estilo de subtítulos")
     ap.add_argument("--extras", default="", help="trabajo/X_extras.json (escenas, destacadas, capítulos…)")
     ap.add_argument("--titulo", default="")
     ap.add_argument("--encuadre", default="", help="auto, completo, relleno o recorte")
     ap.add_argument("--modelo", default="small", help="modelo de Whisper: small (rápido) o medium (más preciso)")
     ap.add_argument("--idioma", default="es", help="es, en o auto")
     ap.add_argument("--pistas", default="", help="nombres difíciles para Whisper, separados por coma")
-    ap.add_argument("--silencio", default="0.3", help="segundos de pausa que se cortan")
+    ap.add_argument("--silencio", default="", help="segundos de pausa que se cortan (por defecto 0.3; en estilo tiktok 0.15)")
     ap.add_argument("--quitar", default="", help="muletillas a borrar, ej: 'eh,este'")
     ap.add_argument("--audio", default="limpio", choices=["limpio", "original"])
     ap.add_argument("--color", default="", choices=["", "natural", "cine", "calido", "vivo", "no"])
     ap.add_argument("--reusar", action="store_true", help="usa la transcripción guardada aunque cambien modelo/idioma")
     ap.add_argument("--sin-cache", action="store_true", help="rehace todo desde cero")
+    ap.add_argument("--resincronizar", action="store_true", help="vuelve a medir y corregir la sincronía de los subtítulos con la voz")
     ap.add_argument("--solo-preparar", action="store_true", help="prepara todo sin renderizar (para revisar.sh)")
+    ap.add_argument("--storyboard", action="store_true",
+                    help="render rápido (preview) + página de revisión con un clip por tramo: Keep / Maybe / Drop y notas")
     ap.add_argument("--salida", default="", help="nombre del archivo final (por defecto salida/<video>_<formato>.mp4)")
     a = ap.parse_args(argv)
+    a.videos = a.video
+    a.video = a.videos[0]
 
     # compatibilidad: RENDER_FLAGS="--frames=0-1" significaba "preparar sin renderizar"
     if "--frames=0-1" in os.environ.get("RENDER_FLAGS", ""):
@@ -195,9 +200,10 @@ def leer_opciones(argv: List[str], cfg: Dict) -> argparse.Namespace:
         raise ErrorEditor(f"No conozco el formato '{a.formato}'.",
                           "Usa uno de estos: " + ", ".join(f"{k} = {v['nombre']}" for k, v in cfg["formatos"].items()))
     a.estilo = a.estilo or preset.get("estilo", "")
-    a.calidad = a.calidad or preset.get("calidad", "final")
+    a.calidad = "preview" if a.storyboard and not a.calidad else (a.calidad or preset.get("calidad", "final"))
     est = cfg["estilos"].get(a.estilo, {})
     a.color = a.color or est.get("color", "natural")
+    a.silencio = a.silencio or str(est.get("silencio", 0.3))
     return a
 
 
@@ -215,6 +221,30 @@ def revisar_herramientas() -> None:
     if libre < 2:
         raise ErrorEditor(f"Queda muy poco espacio en el disco ({libre:.1f} GB).",
                           "Libera al menos 2 GB (por ejemplo borra videos viejos de salida/) y vuelve a correr.")
+
+
+def unir_clips(videos: List[str], cfg: Dict, pasos: Pasos) -> str:
+    """Varios clips -> uno solo, en orden (mismo tamaño, fps y audio). Se guarda en trabajo/ y se reusa si ya existe."""
+    base = os.path.splitext(os.path.basename(videos[0]))[0]
+    destino = ruta("trabajo", f"{base}_unido_{huella_texto([huella_archivo(v) for v in videos])[:8]}.mp4")
+    if os.path.exists(destino):
+        return destino
+    info = [medios.info(v) for v in videos]
+    W, H = info[0]["ancho"], info[0]["alto"]
+    W, H = W - W % 2, H - H % 2
+    fps = medios.fps_de_trabajo(info[0]["fps"])
+    entradas, filtros = [], []
+    for i, (v, d) in enumerate(zip(videos, info)):
+        entradas += ["-i", v]
+        tm = f"{TONEMAP[d['transferencia']]}," if d.get("transferencia") in TONEMAP else ""
+        filtros.append(f"[{i}:v]{tm}scale={W}:{H}:force_original_aspect_ratio=decrease,pad={W}:{H}:(ow-iw)/2:(oh-ih)/2,setsar=1,fps={fps},format=yuv420p[v{i}]")
+        filtros.append(f"[{i}:a]aresample=48000,aformat=channel_layouts=stereo[a{i}]")
+    union = "".join(f"[v{i}][a{i}]" for i in range(len(videos))) + f"concat=n={len(videos)}:v=1:a=1[v][a]"
+    pasos.nota(f"Uniendo {len(videos)} clips en orden...")
+    correr(["ffmpeg", "-y", "-v", "error"] + entradas + ["-filter_complex", ";".join(filtros + [union]), "-map", "[v]", "-map", "[a]",
+           "-c:v", "libx264", "-preset", "fast", "-crf", "16", "-c:a", "aac", "-b:a", "256k", destino],
+           "No pude unir los clips.", "Revisa que todos tengan imagen y sonido.")
+    return destino
 
 
 def revisar_video(p: str) -> Dict:
@@ -299,9 +329,19 @@ def plan_encuadre(formato: str, encuadre: str, d: Dict, cfg: Dict) -> str:
     return enc
 
 
-def filtro_video(formato: str, encuadre: str, cfg: Dict, fps: int, color: str, rx: float) -> str:
+# HDR -> SDR (Rec.709) con mapeo de tonos "hable": la piel queda natural en TV, proyector y TikTok
+TONEMAP = {
+    "arib-std-b67": "zscale=tin=arib-std-b67:min=bt2020nc:pin=bt2020:t=linear:npl=203,format=gbrpf32le,zscale=p=bt709,"
+                    "tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p",
+    "smpte2084": "zscale=tin=smpte2084:min=bt2020nc:pin=bt2020:t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,"
+                 "tonemap=tonemap=hable:desat=0,zscale=t=bt709:m=bt709:r=tv,format=yuv420p",
+}
+
+
+def filtro_video(formato: str, encuadre: str, cfg: Dict, fps: int, color: str, rx: float, transferencia: Optional[str] = None) -> str:
     W, H = cfg["formatos"][formato]["ancho"], cfg["formatos"][formato]["alto"]
-    pre = f"fps={fps}" + (f",{color}" if color else "")
+    convertir = transferencia in TONEMAP and medios.tiene_filtro("zscale")
+    pre = f"fps={fps}" + (f",{TONEMAP[transferencia]}" if convertir else "") + (f",{color}" if color else "")
     if encuadre == "completo":
         # imagen completa; si no es del mismo formato, los lados se rellenan con el mismo video difuminado
         return (f"[0:v]{pre},split=2[a][b];"
@@ -418,11 +458,81 @@ def flags_memoria(mem: Dict[str, float]) -> List[str]:
     (4 hilos, caché de hasta 1,4 GB) el sistema se quedaba sin memoria y una parte de 10 s tardaba 16 min."""
     if not mem["total"]:
         return []
+    if mem["disponible"] < 1.0:  # casi sin memoria: una sola pestaña del navegador (más lento, pero no se cae)
+        return ["--concurrency", "1", "--offthreadvideo-cache-size-in-bytes", str(128 * 1024 * 1024)]
     if mem["total"] <= 8.6 or mem["disponible"] < 2.5:
         return ["--concurrency", "2", "--offthreadvideo-cache-size-in-bytes", str(256 * 1024 * 1024)]
     if mem["total"] <= 16.5:
         return ["--concurrency", "4", "--offthreadvideo-cache-size-in-bytes", str(768 * 1024 * 1024)]
     return []
+
+
+def paso_persona(plan: Dict, preparado: str, pasos: Pasos) -> Dict:
+    """Recorta a la persona SOLO en los tramos que lo necesitan (títulos detrás de la cabeza, fondo nuevo)."""
+    escenas = [e for e in plan.get("escenas", []) if e.get("tipo") == "fondo" or e.get("detras")]
+    plan.pop("personas", None)
+    if not escenas:
+        return plan
+    fps = plan["fps"]
+    rangos = []
+    for e in escenas:
+        a, b = round(e["desdeMs"] / 1000 * fps), round(e["hastaMs"] / 1000 * fps)
+        for sg in plan["segments"]:
+            s0, s1 = max(a, sg["from"]), min(b, sg["from"] + sg["durationInFrames"])
+            if s1 > s0:  # segundos del video preparado (con un margen)
+                rangos.append([max(0.0, (sg["trimBefore"] + s0 - sg["from"]) / fps - 0.25), (sg["trimBefore"] + s1 - sg["from"]) / fps + 0.25])
+    rangos.sort()
+    unidos: List[List[float]] = []
+    for r in rangos:
+        if unidos and r[0] <= unidos[-1][1] + 0.5:
+            unidos[-1][1] = max(unidos[-1][1], r[1])
+        else:
+            unidos.append(r)
+    import recorte_persona
+
+    os.makedirs(ruta("public", "persona"), exist_ok=True)
+    base = os.path.splitext(os.path.basename(preparado))[0]
+    personas = []
+    for d, h in unidos:
+        nombre = f"{base}_{d:.2f}_{h:.2f}.webm"
+        cache = os.path.join(os.path.dirname(preparado), "persona_" + nombre)
+        if not os.path.exists(cache):
+            pasos.nota(f"Recortando a la persona ({d:.1f}–{h:.1f} s) para títulos detrás / fondo nuevo...")
+            try:
+                recorte_persona.recortar(preparado, cache, avisar=pasos.nota, desde=d, hasta=h)
+            except Exception as e:
+                pasos.nota(f"(No se pudo recortar a la persona: {e}. Los títulos 'detrás' quedan delante.)")
+                return plan
+        copiar(cache, ruta("public", "persona", nombre))
+        personas.append({"archivo": f"persona/{nombre}", "desde": round(d, 3), "hasta": round(h, 3)})
+    plan["personas"] = personas
+    escribir_json(ruta("public", "edit.json"), plan)
+    return plan
+
+
+def paso_pantallas(plan: Dict, pasos: Pasos) -> Dict:
+    """Escenas "pantalla" sin recorrido de cámara: se analiza la grabación (zoom a donde pasa algo)."""
+    cambiado = False
+    for e in plan.get("escenas", []):
+        if e.get("tipo") != "pantalla" or e.get("zooms") or not e.get("archivo"):
+            continue
+        p = ruta("public", e["archivo"])
+        if not os.path.exists(p):
+            raise ErrorEditor(f"No encuentro la grabación de pantalla public/{e['archivo']}.", "Ponla en public/broll/ y revisa el nombre en los extras.")
+        cache = p + ".zooms.json"
+        if os.path.exists(cache) and os.path.getmtime(cache) >= os.path.getmtime(p):
+            e["zooms"] = leer_json(cache)
+        else:
+            import pantalla
+
+            pasos.nota(f"Analizando la grabación de pantalla {e['archivo']} (zoom automático)...")
+            e["zooms"] = pantalla.analizar(p)
+            with open(cache, "w") as f:
+                json.dump(e["zooms"], f)
+        cambiado = True
+    if cambiado:
+        escribir_json(ruta("public", "edit.json"), plan)
+    return plan
 
 
 def flags_calidad(q: Dict) -> List[str]:
@@ -450,39 +560,61 @@ def matar_arbol(pid: int) -> None:
             pass
 
 
+# Mensajes de Remotion que significan "este render ya no va a terminar": el navegador o el extractor de cuadros se
+# cayó (pasa con poca memoria). Sin esto, Remotion se queda esperando hasta su tiempo límite (15 min por cuadro).
+FALLAS_FATALES = ("Could not extract frame from compositor", "Target closed", "Session closed", "Protocol error", "browser has disconnected")
+
+
 def render_parte(bundle: str, archivo: str, ini: int, fin: int, q: Dict, p: int, n_partes: int, pasos: Pasos,
-                 intentos: int = 4) -> None:
-    """Renderiza una parte. Si Remotion falla o se queda colgado (pasa a veces: el extractor de cuadros se cae y el
-    proceso espera para siempre), se corta por tiempo y se reintenta. Al final se cuentan los cuadros de verdad."""
+                 intentos: int = 5, composicion: str = "Edit", extra: Optional[List[str]] = None) -> None:
+    """Renderiza una parte de forma resistente:
+    - si Remotion avisa que el extractor de cuadros o el navegador se cayó, se corta EN SEGUIDA y se reintenta
+      (antes se quedaba esperando hasta 15 minutos);
+    - si se queda colgado sin avisar, se corta por tiempo y se reintenta;
+    - al final se cuentan los cuadros de verdad."""
     cuadros = fin - ini + 1
     limite = max(1800, cuadros * 6.0)  # muy por encima de lo normal (~0,1–1 s por cuadro)
-    cmd = ["npx", "remotion", "render", bundle, "Edit", archivo, f"--frames={ini}-{fin}", "--muted",
-           "--timeout", "900000"] + flags_calidad(q)  # 15 min por cuadro: con poca memoria hay pausas largas
+    cmd = ["npx", "remotion", "render", bundle, composicion, archivo, f"--frames={ini}-{fin}", "--muted",
+           "--timeout", "900000"] + flags_calidad(q) + (extra or [])  # 15 min por cuadro: con poca memoria hay pausas largas
     detalle = ""
+    registro = archivo + ".registro.txt"
     for intento in range(1, intentos + 1):
-        proc = subprocess.Popen(cmd, cwd=RAIZ, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
-                                start_new_session=True)
+        with open(registro, "w") as reg:
+            proc = subprocess.Popen(cmd, cwd=RAIZ, stdout=reg, stderr=subprocess.STDOUT, text=True, start_new_session=True)
+        t0 = time.time()
+        motivo = ""
         try:
-            salida, error = proc.communicate(timeout=limite)
-            ok = proc.returncode == 0 and medios.contar_cuadros(archivo) == cuadros
-            detalle = "\n".join((error or salida or "").strip().splitlines()[-12:]) or f"cuadros: {medios.contar_cuadros(archivo)}"
-            if not ok:  # registro completo para diagnosticar (queda junto a las partes)
-                with open(archivo + f".intento{intento}.log", "w") as f:
-                    f.write(f"codigo {proc.returncode}\n{salida}\n{error}")
-        except subprocess.TimeoutExpired:
-            matar_arbol(proc.pid)  # se cierra Remotion y su navegador
-            proc.communicate()
-            ok, detalle = False, f"Se quedó colgado más de {limite:.0f} s."
+            while proc.poll() is None:
+                time.sleep(0.5)
+                with open(registro, errors="ignore") as f:
+                    texto = f.read()
+                fatal = next((m for m in FALLAS_FATALES if m in texto), "")
+                if fatal:
+                    motivo = f"Remotion avisó: {fatal}"
+                elif time.time() - t0 > limite:
+                    motivo = f"Se quedó colgado más de {limite:.0f} s."
+                if motivo:
+                    matar_arbol(proc.pid)  # se cierra Remotion y su navegador
+                    proc.wait()
+                    break
         except KeyboardInterrupt:
             matar_arbol(proc.pid)
             raise
+        with open(registro, errors="ignore") as f:
+            texto = f.read()
+        ok = not motivo and proc.returncode == 0 and medios.contar_cuadros(archivo) == cuadros
         if ok:
+            os.remove(registro)
             return
+        detalle = motivo or "\n".join(texto.strip().splitlines()[-12:]) or f"cuadros: {medios.contar_cuadros(archivo)}"
+        with open(archivo + f".intento{intento}.log", "w") as f:  # registro completo para diagnosticar
+            f.write(f"codigo {proc.returncode} {motivo}\n{texto}")
         if intento < intentos:
             pasos.nota(f"(La parte {p + 1} falló; reintento {intento} de {intentos - 1}…)")
+            time.sleep(2)  # un respiro para que el sistema libere memoria
     raise ErrorEditor(f"El render se detuvo en la parte {p + 1} de {n_partes} (falló {intentos} veces).",
                       "Vuelve a correr el mismo comando: sigue desde esta parte (las anteriores ya están guardadas). "
-                      "Si vuelve a fallar, prueba con --calidad preview para ver si el problema es de memoria.", detalle)
+                      "Cerrar apps pesadas (Chrome, Spotify) casi siempre lo arregla: es falta de memoria.", detalle)
 
 
 def paso_render(plan: Dict, cfg: Dict, a, nombre: str, salida: str, pasos: Pasos) -> Dict:
@@ -544,7 +676,7 @@ def paso_render(plan: Dict, cfg: Dict, a, nombre: str, salida: str, pasos: Pasos
     # (scripts/mezcla.py; así no hay "clics" entre partes y no hay que recorrer todos los cuadros otra vez)
     mezcla_wav = os.path.join(carpeta, "mezcla.wav")
     try:
-        mezcla.mezclar_a_archivo(ruta("public", "edit.json"), mezcla_wav)
+        niveles = mezcla.mezclar_a_archivo(ruta("public", "edit.json"), mezcla_wav)
     except Exception as e:
         raise ErrorEditor("No pude mezclar el audio.", "Revisa que existan los archivos de música/efectos del plan.", str(e))
     lista = os.path.join(carpeta, "partes.txt")
@@ -562,6 +694,8 @@ def paso_render(plan: Dict, cfg: Dict, a, nombre: str, salida: str, pasos: Pasos
             "-c", "copy", "-movflags", "+faststart", tmp], "No pude juntar el video con el audio.")
     os.replace(tmp, salida)
     pasos.nota(f"Audio: {medida['antes_lufs']:.1f} → {medida['lufs']:.1f} LUFS, pico real {medida['pico_dbtp']:.1f} dBTP.")
+    pasos.nota(f"Mezcla: {mezcla.texto_informe(niveles)}.")
+    escribir_json(ruta("trabajo", f"{nombre}_niveles.json"), niveles)  # lo lee el control de calidad
     return {"carpeta": carpeta, "bundle": bundle, "audio": medida}
 
 
@@ -574,7 +708,8 @@ def paso_portada(a, caras_ruta: str, color: str) -> bool:
 def control_calidad(salida: str, plan: Dict, cfg: Dict, a, medida_audio: Dict) -> List[str]:
     r = subprocess.run([PY, ruta("scripts", "control_calidad.py"), salida, ruta("public", "edit.json"),
                         "--escala", str(cfg["calidades"][a.calidad].get("escala", 1)),
-                        "--lufs", str(cfg["audio"]["lufs"]), "--pico", str(cfg["audio"]["picoMaximoDbtp"])],
+                        "--lufs", str(cfg["audio"]["lufs"]), "--pico", str(cfg["audio"]["picoMaximoDbtp"]),
+                        "--niveles", ruta("trabajo", f"{os.path.splitext(os.path.basename(a.videos[0]))[0]}{'_completo' if len(a.videos) > 1 else ''}_niveles.json")],
                        capture_output=True, text=True, cwd=RAIZ)
     print(r.stdout.rstrip())
     return [l for l in r.stdout.splitlines() if l.strip().startswith("✗")]
@@ -589,10 +724,14 @@ def principal(argv: List[str]) -> int:
 
     pasos("Revisando herramientas y el video...")
     revisar_herramientas()
+    if len(a.videos) > 1:
+        for v in a.videos:
+            revisar_video(v)
+        a.video = unir_clips(a.videos, cfg, pasos)
     d = revisar_video(a.video)
     if a.extras and not os.path.exists(a.extras):
         raise ErrorEditor(f"No encuentro el archivo de extras '{a.extras}'.", "Revisa el nombre (está en trabajo/?).")
-    nombre = os.path.splitext(os.path.basename(a.video))[0]
+    nombre = os.path.splitext(os.path.basename(a.videos[0]))[0] + ("_completo" if len(a.videos) > 1 else "")
     huella = huella_archivo(a.video)
     carpeta = ruta("trabajo", "cache", f"{nombre}_{huella[:10]}")
     if a.sin_cache and os.path.isdir(carpeta):
@@ -602,6 +741,10 @@ def principal(argv: List[str]) -> int:
     cache = leer_json(cache_json) or {}
     fps_in = medios.fps_de_trabajo(d["fps"])
     formato = cfg["formatos"][a.formato]
+    if d.get("hdr"):
+        pasos.nota("Video HDR (iPhone): se convierte a color normal para que la piel se vea natural."
+                   if medios.tiene_filtro("zscale") else
+                   "Ojo: video HDR y este ffmpeg no puede convertirlo (falta zscale): los colores pueden verse lavados. Corre instalar.command.")
     pasos.nota(f"{d['ancho']}x{d['alto']}, {d['fps']:g} fps, {d['duracion']:.0f} s → {a.formato} "
                f"{formato['ancho']}x{formato['alto']} a {cfg['fps']} fps, estilo {a.estilo or 'ninguno'}, calidad {a.calidad}.")
     if d["duracion"] > 180 and not a.solo_preparar:
@@ -618,18 +761,30 @@ def principal(argv: List[str]) -> int:
     voz = paso_voz(a.video, carpeta, a.audio)
     encuadre = plan_encuadre(a.formato, a.encuadre, d, cfg)
     try:
-        preparado = paso_preparar(a.video, voz, carpeta, filtro_video(a.formato, encuadre, cfg, fps_in, color, caras.get("recorte_x", 0.5)))
+        preparado = paso_preparar(a.video, voz, carpeta, filtro_video(a.formato, encuadre, cfg, fps_in, color, caras.get("recorte_x", 0.5), d.get("transferencia")))
     except ErrorEditor:
         if not color:
             raise
         pasos.nota("(El color automático falló en este video; sigo sin corrección de color.)")
-        preparado = paso_preparar(a.video, voz, carpeta, filtro_video(a.formato, encuadre, cfg, fps_in, "", caras.get("recorte_x", 0.5)))
+        preparado = paso_preparar(a.video, voz, carpeta, filtro_video(a.formato, encuadre, cfg, fps_in, "", caras.get("recorte_x", 0.5), d.get("transferencia")))
     copiar(preparado, ruta("public", "input.mp4"))
     trans = paso_transcribir(voz, nombre, huella, a)
+    try:  # ¿las palabras caen donde suena la voz? Si están corridas más de 120 ms, se re-sincronizan solas
+        import sincronia
+
+        sinc = sincronia.revisar(voz, trans, forzar=a.resincronizar)
+        if sinc["corregido"]:
+            pasos.nota(f"Subtítulos re-sincronizados con la voz: estaban corridos {sinc['corregido']:+.0f} ms.")
+        elif sinc["nuevo"]:
+            pasos.nota(f"Subtítulos en sincronía con la voz (desfase medido: {sinc['desfase']:+.0f} ms).")
+    except Exception as e:
+        pasos.nota(f"(No pude medir la sincronía de los subtítulos: {e})")
 
     pasos("Plan de edición, sonidos y música...")
     plan = paso_plan(a, trans, ruta("trabajo", f"{nombre}_caras.json"), encuadre, cfg, nombre)
     plan = paso_musica(plan, huella)
+    plan = paso_persona(plan, preparado, pasos)
+    plan = paso_pantallas(plan, pasos)
     if a.solo_preparar:
         print(f"LISTO (sin renderizar): public/edit.json. Revisa con: bash scripts/revisar.sh {nombre}")
         return 0
@@ -651,6 +806,11 @@ def principal(argv: List[str]) -> int:
 
     pasos("Control de calidad...")
     problemas = control_calidad(salida, plan, cfg, a, r["audio"])
+    if a.storyboard:
+        import storyboard
+
+        dest = storyboard.armar(nombre, salida, ruta("public", "edit.json"))
+        print(f"STORYBOARD listo ({os.path.relpath(dest, RAIZ)}). Ábrelo con: .venv/bin/python scripts/storyboard.py servir {nombre}")
     shutil.rmtree(r["carpeta"], ignore_errors=True)  # partes temporales: ya no se necesitan
     minutos, segundos = divmod(int(time.time() - inicio), 60)
     print(f"    Tiempo por paso: {pasos.resumen()}")

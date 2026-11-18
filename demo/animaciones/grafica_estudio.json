@@ -1,0 +1,15 @@
+{
+ "tipo": "grafica",
+ "formato": "reel",
+ "tema": "claro",
+ "etiqueta": "Minutos de estudio (ejemplo)",
+ "valores": [10, 15, 15, 25, 30, 45, 60],
+ "etiquetas": ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
+ "sufijo": " min",
+ "musica": "energia",
+ "pasos": [
+  {"texto": "Así subieron mis minutos de estudio esta semana"},
+  {"texto": "Empecé con diez minutos al día"},
+  {"texto": "Y el domingo ya llegué a una hora"}
+ ]
+}

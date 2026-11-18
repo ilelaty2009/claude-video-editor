@@ -16,6 +16,12 @@ ffmpeg -v error -y -ss 9.4 -t 6.5 -i "$TV" \
 ffmpeg -v error -y -ss 7.6 -i "$TV" -frames:v 1 -q:v 3 docs/tv.jpg
 ffmpeg -v error -y -ss 7.6 -i "$RL" -frames:v 1 -vf scale=360:-2 -q:v 3 docs/reel.jpg
 
+# Estilo "reel de tutorial": pantalla dividida + subtítulos de una palabra + banner + llamada a la acción
+RD=salida/prueba_reel_estilo.mp4
+[ -f "$RD" ] || bash scripts/editar.sh demo/fotosintesis_demo.mov --preset tiktok --extras demo/reel_extras.json --calidad preview --salida "$RD"
+for t in 6.5 15.5 21.8; do ffmpeg -v error -y -ss "$t" -i "$RD" -frames:v 1 -vf scale=300:-2 "trabajo/rd_$t.jpg"; done
+ffmpeg -v error -y -i trabajo/rd_6.5.jpg -i trabajo/rd_15.5.jpg -i trabajo/rd_21.8.jpg -filter_complex hstack=inputs=3 -q:v 3 docs/reel_dividida.jpg
+
 # Un fotograma por estilo de subtítulos (a tamaño real, reducido a la mitad)
 bash scripts/editar.sh demo/fotosintesis_demo.mov --preset colegio-tv --extras demo/fotosintesis_extras.json --solo-preparar >/dev/null
 cp public/edit.json trabajo/edit_capturas.json

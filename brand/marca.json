@@ -1,0 +1,18 @@
+{
+ "_leeme": "HOJA DE MARCA: tus colores y fuentes. Todo el editor los usa (escenas, títulos, gráficos, banners). Explicación en brand/BRAND.md. Para sacarla de tu página web: .venv/bin/python scripts/marca.py desde-web https://tu-pagina.com",
+ "nombre": "Pablo",
+ "colores": {
+  "azul": "#5CC8FF",
+  "amarillo": "#FFC94D",
+  "rojo": "#FF3B5C",
+  "verde": "#2ED47A",
+  "fondo": ["#1d2447", "#0d1024", "#07080f"]
+ },
+ "fuentes": {
+  "escenas": "Inter",
+  "subtitulos": "Montserrat"
+ },
+ "subtitulos": {
+  "colorActiva": ""
+ }
+}

@@ -4,11 +4,11 @@
 // Criterio de contraste: texto y palabra activa contra su borde o caja ≥ 4,5:1 (WCAG AA). Lo revisa `npm test`.
 import { estilo } from "../estilo";
 
-export type NombreEstiloSub = "tiktok" | "cine" | "caja" | "resaltado";
+export type NombreEstiloSub = "tiktok" | "cine" | "caja" | "resaltado" | "etiqueta";
 
 export type EstiloSub = {
   descripcion: string;
-  familia: "Montserrat" | "Inter" | "Poppins" | "Anton";
+  familia: string; // una de public/fuentes (ver src/marca.ts)
   peso: 700 | 900;
   tamTV: number;
   tamVertical: number;
@@ -26,6 +26,7 @@ export type EstiloSub = {
   escalaDestacada: number;
   banda?: boolean; // banda oscura suave en la parte de abajo
   centroVertical: number; // en formatos verticales, a qué altura va el centro del bloque (0-1)
+  centroDividida?: number; // con PANTALLA DIVIDIDA (vertical) el bloque se va a esta altura (la unión de las mitades)
 };
 
 export const estilosSub: Record<NombreEstiloSub, EstiloSub> = {
@@ -86,6 +87,27 @@ export const estilosSub: Record<NombreEstiloSub, EstiloSub> = {
     pop: false,
     escalaDestacada: 1,
     centroVertical: 0.7,
+  },
+  // Una sola palabra a la vez en una etiqueta oscura, justo en el centro (la unión de la pantalla dividida).
+  // Es el de los reels de tutoriales: se lee de un vistazo y no tapa ni el contenido ni la cara.
+  etiqueta: {
+    descripcion: "Una palabra a la vez en una etiqueta oscura al centro (ideal con pantalla dividida)",
+    familia: "Inter",
+    peso: 900,
+    tamTV: 60,
+    tamVertical: 60,
+    mayusculas: true,
+    maxLineas: 1,
+    maxPalabras: 1,
+    colorTexto: "#FFFFFF",
+    colorActiva: "#FFFFFF",
+    opacidadFuturas: 1,
+    caja: { color: "#111111", opacidad: 0.9, radioEm: 0.16, rellenoEm: 0.2 },
+    sombra: "none",
+    pop: true,
+    escalaDestacada: 1,
+    centroVertical: 0.68, // normal: abajo, como los demás (nunca encima de la cara)
+    centroDividida: 0.46, // con pantalla dividida: justo encima de la unión (el banner va justo debajo)
   },
   // Estilo "Hormozi/Submagic": la palabra actual dentro de una pastilla de color.
   resaltado: {

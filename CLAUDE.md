@@ -77,10 +77,19 @@ Háblale en español latinoamericano, corto y claro. Si usas un término técnic
       - `"look": "tiktok"` (por defecto): subtítulos grandes amarillos, emojis, capítulos. El del video de Ibn Khaldun.
       - `"look": "cine"`: subtítulos limpios de una línea (palabra actual en rojo) + **escenas animadas**.
         Es el estilo del TikTok de Mark Cuban "Edited with Opus 5.5" (nov 2026). Recomendado para presentaciones en TV.
+   c3. **Banners fijos** (el gancho que se queda en pantalla, como los reels de tutoriales): `"banners": [{"texto": "6 trucos que… 🤯", "hasta": 12.0}, {"texto": "Comenta X y te lo mando", "desde": 30.0}]`
+      Estilos: `"estilo": "pastilla"` (blanca, por defecto) | `"texto"` (solo texto blanco) | `"vidrio"` (vidrio esmerilado).
+      En `destacadas`, `"caja": true` pone la palabra dentro de una caja de color en los subtítulos.
+      (segundos del ORIGINAL; sin `desde` empieza al inicio, sin `hasta` dura hasta el final). Con pantalla dividida van justo
+      debajo de la unión; si no, arriba dentro de la zona segura. El plan imprime `GANCHO:` y avisa si los primeros 3 s
+      no tienen título, gancho, banner ni escena.
+   c4. **Censura** (TikTok): `"censurar": true` tapa groserías comunes con pitido y asteriscos en el subtítulo (`m*****`);
+      con una lista (`"censurar": ["palabra"]`) agrega las tuyas. El pitido lo pone la mezcla final.
    c2. **Subtítulos** (en los extras `"subtitulos": "X"` o `--subtitulos X`; si no, el estilo escoge):
       `cine` (clase/youtube: limpio, palabra actual en rojo) | `tiktok` (grandes, amarillo, borde negro, emojis) |
       `caja` (caja oscura detrás: lo MÁS legible en proyector; ofrécelo si el salón es grande o con mucha luz) |
-      `resaltado` (palabra actual dentro de una pastilla amarilla). Siempre máximo 2 líneas, sin cortar palabras y dentro
+      `resaltado` (palabra actual dentro de una pastilla amarilla) | `etiqueta` (UNA palabra a la vez en una etiqueta oscura al
+      centro: el de los reels con pantalla dividida). Siempre máximo 2 líneas, sin cortar palabras y dentro
       de la zona segura del formato (lo revisa `npm test`). Valores en `src/subtitulos/estilos.ts`.
    d. **Escenas animadas** (sobre todo con look cine): lista `"escenas"` en los extras. Tiempos en segundos del video ORIGINAL.
       Ritmo de la referencia: una escena cada 3–5 s, cubriendo ~50–60% del video; nunca dos pantallas completas seguidas
@@ -100,8 +109,24 @@ Háblale en español latinoamericano, corto y claro. Si usas un término técnic
       | `lista` | la persona enumera 2–5 cosas | `titulo`, `items` [{`texto`, `detalle`, `en`}] |
       | `linea_tiempo` | fechas o etapas (historia, procesos) | `titulo`, `items` [{`texto` = año, `detalle`, `en`}] |
       | `broll` | foto o video de apoyo de lo que se está diciendo (un lugar, un personaje, un objeto) | `archivo` (en `public/broll/`), `efecto` acercar/alejar/paneo, `credito`, `completo`, `desdeSeg`, `lineas`/`arriba` |
+      | `dividida` | PANTALLA DIVIDIDA (estilo reels de tutoriales): contenido en un panel y la persona en el otro, con la cara centrada. Ideal para mostrar una diapositiva, una grabación de pantalla o un resultado mientras sigue hablando | `modo` apilada (vertical: contenido arriba, persona abajo) / lado (TV: contenido a un lado) / pip (contenido completo y la cara en un círculo), `archivo` (foto o video en `public/broll/`) y/o `arriba` + `lineas`, `lado`, `credito` |
+      | `grafica` | datos con números que SE DICEN en el video (crecimiento, comparación) | `grafica` linea/barras, `valores` [números], `etiquetas`, `titulo`, `prefijo`, `sufijo`, `decimales` |
+      | `mapa` | ir de un lugar a otro (rutas, viajes, "de mi casa al colegio") | `origen`, `destino`, `texto` (p. ej. "9 min"), `etiqueta` (p. ej. "2,8 km") |
+      | `cta` | llamada a la acción al final (TikTok): botón Seguir con clic y un comentario que se escribe solo | `usuario`, `palabra` (la que se escribe), `titulo` |
+      | `cinetica` | la frase MÁS importante, a pantalla completa: cada palabra aparece justo cuando se dice (no hace falta escribir las palabras: salen de la voz; los subtítulos se ocultan solos mientras tanto) | `destacar` [palabras de color] |
+      | `diagrama` | "esto lleva a esto": pasos o apps conectados con flechas | `titulo`, `nodos` [{`icono` (emoji), `texto`, `en`}] (2–4) |
+      | `ventana` | cuando se le pide algo a una IA o app: ventana con el texto que se escribe, lista que se va marcando y barra de progreso | `texto`, `items` [{`texto`, `en`}], `valor` (total de la barra), `etiqueta`, `etiqueta2` |
+      | `collage` | 2–4 fotos o videos de ejemplo en tarjetas flotando sobre el video | `archivos` [en `public/broll/`] |
+      | `anotacion` | señalar algo del video con un trazo a mano | `forma` circulo/flecha/subrayado/x, `x`, `y`, `ancho`, `alto` (0–1), `texto` |
+      | `pantalla` | grabación de pantalla "cinematográfica": ventana con sombra y zoom automático a donde pasa algo | `archivo` (en `public/broll/`), `desdeSeg` |
+      | `fondo` | cambia el fondo detrás de la persona (como pantalla verde, sin pantalla verde) | `archivo` (foto/video) o `color` |
+      | `capa` | efecto con transparencia encima del video (p. ej. 3D de HyperFrames) | `archivo` (.webm en `public/broll/`) |
+      - **Títulos DETRÁS de la cabeza**: a un `titular` ponle `"detras": true` (y `"vertical": "centro"` para que quede a la
+        altura de la cabeza). El editor recorta a la persona solo en ese tramo (tarda ~4,5 s por segundo de video).
+        Úsalo 1–2 veces por video, en el título o la idea central. Con paredes muy claras queda un borde fino: revísalo.
       - **Transiciones** (escenas de pantalla completa): `"entrada": "suave"` (normal) | `"barrido"` (entra de lado) |
-        `"zoom"` (acercamiento con desenfoque) | `"luz"` (destello de luz cálida). Varía: no repitas la misma dos veces seguidas.
+        `"zoom"` (acercamiento con desenfoque) | `"luz"` (destello de luz cálida) | `"glitch"` (falla digital; tecnología).
+        Varía: no repitas la misma dos veces seguidas.
       - `en` = segundo exacto en que la persona dice esa palabra (sale de la transcripción). Así el texto aparece justo cuando lo dice.
       - Textos de escenas: MAYÚSCULAS, 1–3 palabras por línea, máximo 4 líneas. Colores: `#5CC8FF` azul, `#FFC94D` amarillo,
         `#FF3B5C` rojo, blanco por defecto. Una sola palabra de color por escena.
@@ -151,6 +176,27 @@ Háblale en español latinoamericano, corto y claro. Si usas un término técnic
    g. **Portada / miniatura**: `"portada": {"arriba": "…", "lineas": [{"texto": "…"}, {"texto": "…", "color": "#FFC94D"}], "etiqueta": "…"}`.
       Máximo 2–3 líneas de 1–2 palabras, que den curiosidad. El editor escoge solo el fotograma con la cara más grande y nítida
       y la encuadra como miniatura de YouTube (cara a un lado, texto al otro). Queda en `salida/X_FORMATO_portada.jpg`.
+3b. **STORYBOARD (revisar antes del render final)** — lo más rápido para que Pablo opine:
+   `bash scripts/editar.sh videos/X.mov --preset … --extras trabajo/X_extras.json --storyboard`
+   Hace un render rápido y una página con un clip por cada tramo. Ábrela con
+   `.venv/bin/python scripts/storyboard.py servir X` (en segundo plano) y dile a Pablo que califique cada tramo
+   **Keep** (se queda), **Maybe** (cambiarlo: que diga cómo) o **Drop** (quitar ese gráfico) y apriete "Enviar".
+   Cuando diga "listo": lee `trabajo/storyboard_X/respuestas.json`, cambia los extras (cada tramo trae `ref` con la
+   escena, banner o capítulo que es), contesta cada nota con
+   `.venv/bin/python scripts/storyboard.py responder X notas.json` (`{"beat_03": "Listo: aparece 0,5 s antes"}`) y
+   repite `--storyboard`. Cuando todo sea Keep, corre el render final sin `--storyboard`.
+   Notas que funcionan mejor: "cuando digo X, muestra…" (no "como por el segundo 30").
+3c. **Otras formas de editar** (copiadas de los mejores editores):
+   - **Borrando texto** (como Descript): `.venv/bin/python scripts/guion.py exportar trabajo/X_transcripcion.json`,
+     Pablo borra frases o palabras de `trabajo/X_guion.md`, y `guion.py aplicar trabajo/X_transcripcion.json trabajo/X_extras.json`
+     las vuelve cortes. El guion también te sirve a ti para leer la transcripción rápido (una frase por línea).
+   - **Clips de un video largo** (como OpusClip): `.venv/bin/python scripts/clips.py trabajo/X_transcripcion.json`
+     propone tramos de 15–60 s que empiezan y terminan en frases completas (`trabajo/X_clips.md`). El puntaje solo
+     ordena: LEE cada uno y escoge los que se entienden solos y tienen remate. Cada clip se edita con su `"recortar"`.
+   - **Varios clips grabados por separado**: pásalos todos, en orden: `bash scripts/editar.sh videos/a.mov videos/b.mov …`.
+   - **Video HDR del iPhone**: se convierte solo a color normal (lo avisa). **Referencias por link**:
+     `bash scripts/analizar_referencia.sh "https://…"` (lo baja con yt-dlp).
+   - **Seguir en DaVinci/Premiere**: `.venv/bin/python scripts/exportar_edl.py trabajo/X_edit.json videos/X.mov` (solo cortes).
 4. **Editar**: `bash scripts/editar.sh videos/X.mov --preset colegio-tv|tiktok --extras trabajo/X_extras.json`
    (o `--formato tv|reel|cuadrado|retrato --estilo …`; lo que se escribe en el comando manda sobre el preset).
    **Calidad**: `--calidad preview` (media resolución, rápido, para revisar movimiento y ritmo) | `final` (por defecto,
@@ -172,6 +218,7 @@ Háblale en español latinoamericano, corto y claro. Si usas un término técnic
 5. **Revisar ANTES del render completo** (ahorra tiempo y uso):
    `bash scripts/editar.sh … --solo-preparar` (prepara todo sin renderizar) y luego `bash scripts/revisar.sh X`.
    Abre `trabajo/X_revision.jpg` con Read: un fotograma de cada escena, título, capítulos y final en una sola imagen.
+   Lo pintado de ROJO es la zona que tapan los botones de TikTok o que recortan algunos TV: ningún texto debe quedar ahí.
    Si algo se ve mal, arregla los extras y repite `revisar.sh`. Cuando esté bien, corre `editar.sh` sin `--solo-preparar`.
    Con escenas, revisa un fotograma de CADA escena (a la mitad de su tiempo) más título y final:
    que el texto no se salga, que nada tape caras en `titular` sin fondo y que los subtítulos se lean.
@@ -180,11 +227,46 @@ Háblale en español latinoamericano, corto y claro. Si usas un término técnic
    Ejemplo completo ya hecho: `demo/fotosintesis_extras.json` (y los de Pablo en `trabajo/`, que no se suben a GitHub).
 5b. **Masterización + control de calidad** (automático al final de `editar.sh`): revisa 60 fps, resolución, H.264,
    volumen (-14 LUFS ±1), pico real (≤ -1 dBTP), duración, pantallazos negros y silencios raros, y escribe los subtítulos
-   en `salida/X_FORMATO.srt`. Si dice "cosas por revisar", arréglalas antes de entregar. Mira la portada con Read.
+   en `salida/X_FORMATO.srt` (y, si hay capítulos, `salida/X_FORMATO_capitulos.txt` listo para la descripción de YouTube).
+   También revisa: cuadros con fallas (parpadeos de 1 cuadro), que la música quede ≥ 12 dB debajo de la voz y que ningún
+   efecto suene más de 3 dB sobre la voz (los corrige solo y lo dice), y la sincronía de los subtítulos con la voz
+   (si están corridos más de 120 ms los re-sincroniza; `--resincronizar` lo vuelve a medir; a mano:
+   `"desfaseSubtitulos": ms` en los extras). Para revisar cada corte:
+   `.venv/bin/python scripts/revisar_cortes.py salida/X_tv.mp4 trabajo/X_edit.json` y mira `trabajo/X_cortes.jpg`.
+   Si dice "cosas por revisar", arréglalas antes de entregar. Mira la portada con Read.
    Al final imprime cuánto tardó cada paso.
 6. **Entregar**: dile a Pablo dónde quedaron el video, la portada y el .srt, y resume en 3 líneas qué decisiones tomaste.
 7. **Aprender**: todo lo que Pablo corrija (colores, tamaños, ritmo, música…), agrégalo a `estilo.md` → "Correcciones de Pablo",
    para que el próximo video salga mejor desde el primer intento.
+
+## Marca (brand sheet), Brand Lab y reglas anti "AI slop"
+- **`brand/BRAND.md` + `brand/marca.json`**: colores y fuentes de Pablo; TODO el editor los usa. Léelo antes de editar.
+  Desde su web: `.venv/bin/python scripts/marca.py desde-web https://…`. Fuente nueva de Google:
+  `.venv/bin/python scripts/fuente_google.py "Nombre"` y ponla en `marca.json`. Antes de usar una marca nueva,
+  muéstrale cuadros de ejemplo y espera su sí. Cuando algo le guste: "agrégalo a mi marca" → anótalo en BRAND.md.
+- **Brand Lab**: `.venv/bin/python scripts/brand_lab.py [--formato tv]` hace 22 muestras de estilo (subtítulos,
+  transiciones, banners, pantalla dividida, escenas) y `storyboard.py servir lab` abre la página para calificarlas.
+  Lo Keep se vuelve el estilo preferido (anótalo en BRAND.md); lo Drop no se usa más.
+- **Anti "AI slop"** (lo que delata un video hecho con IA; regla del experto): nada de imágenes sobreanimadas, nada de
+  fuentes serif en itálica, nada de movimientos de cámara sin motivo. Una idea por escena; si dudas, menos.
+- **Sonidos**: los de Pablo van en `public/sfx/propios/` con el nombre de lo que suenan (whoosh.mp3, pop.wav, ding…):
+  mandan sobre los de fábrica. Si falta uno: `.venv/bin/python scripts/generar_sonido.py swipe|glitch|blip|tap|snap|chime|impacto [--nombre x]`.
+  Su música va en `public/musica/` (`"musica": {"archivo": "musica/x.mp3"}`).
+- **Efectos HyperFrames** (3D real y más; gratis): `bash scripts/hyperframes.sh tarjeta3d --formato reel --variables '{"frente":"ANTES","atras":"DESPUÉS"}'`
+  deja `public/broll/hf_tarjeta3d.webm` (fondo transparente) para una escena `capa`. Efectos nuevos: un HTML en
+  `hyperframes/<nombre>/index.html` (usa `__ANCHO__`/`__ALTO__`; animación con GSAP en `window.__timelines["main"]`).
+- **Cómo grabar** (dile a Pablo si pregunta): no importa pausar o repetir (se corta); dejar aire arriba de la cabeza
+  (ahí van títulos); 4K si puede (los zooms quedan nítidos); decir claras las palabras importantes.
+
+## Animaciones explicativas desde cero (sin grabar nada)
+Comandos con barra (las skills están en `.claude/skills/`): **/palitos** (caricatura con monitos de palitos),
+**/minimalista** (formas simples y puntos sobre negro), **/despiece** (un producto que se separa en sus piezas),
+**/mapa-ruta** (mapa 3D con la ruta animada) y **/grafica** (números que se vuelven gráfica con contador).
+Claude escribe una receta JSON y corre `bash scripts/animar.sh receta.json [--formato tv|reel] [--calidad preview] [--broll]`:
+voz narrada gratis (voces de macOS: Paulina en español, Samantha en inglés), música original, audio a -14 LUFS y 60 fps.
+Ejemplos en `demo/animaciones/`. Con `--broll` la animación queda en `public/broll/` para meterla en un video editado
+(escena `broll` o `dividida`). Lo que NO se puede gratis y sin internet: animaciones 3D realistas tipo película
+("/zach-d-films"): necesitan generadores de video o 3D con IA, que son de pago. Si Pablo lo pide, díselo y ofrece /palitos.
 
 ## Reglas
 - Nunca borres ni sobrescribas los videos originales de `videos/` o `referencias/`.
@@ -198,5 +280,7 @@ Háblale en español latinoamericano, corto y claro. Si usas un término técnic
 - Si cambias código (src/ o scripts/), corre `npm test` antes de renderizar: revisa tipos, subtítulos, formatos, fps,
   duración y audio. No borres ni debilites pruebas para que pasen.
 - Si el comando falla, el mensaje dice PROBLEMA y QUÉ HACER en español; el "Detalle técnico" es para ti.
+- Con 8 GB de RAM (el Mac de Pablo): si el render avisa "poca memoria", pídele cerrar Chrome/Spotify. Si Remotion se cae, el
+  editor corta en seguida y reintenta solo (hasta 5 veces por parte); no lo mates ni lances otro a la vez.
 - Todo lo que se usa aquí es gratis. Remotion tiene licencia propia: gratis para personas, organizaciones sin ánimo de
   lucro y empresas de hasta 3 empleados (ver README → Licencias).

@@ -48,6 +48,48 @@ def escribir_srt(edit, ruta):
     return len(bloques)
 
 
+def escribir_capitulos(edit, ruta):
+    """Capítulos en el formato de la descripción de YouTube ("0:00 Intro"). YouTube pide que el primero sea 0:00,
+    que haya al menos 3 y que cada uno dure 10 s o más; si no se cumple, se avisa en el archivo."""
+    caps = sorted(edit.get("capitulos", []), key=lambda c: c["desdeMs"])
+    if not caps:
+        return ""
+    if caps[0]["desdeMs"] > 1000:
+        caps = [{"desdeMs": 0, "texto": "Intro"}] + caps
+    else:
+        caps[0] = {**caps[0], "desdeMs": 0}
+
+    def t(ms):
+        s = int(ms // 1000)
+        return f"{s // 3600}:{s % 3600 // 60:02d}:{s % 60:02d}" if s >= 3600 else f"{s // 60}:{s % 60:02d}"
+
+    total = edit["durationInFrames"] / edit["fps"] * 1000
+    cortos = [c for c, sig in zip(caps, caps[1:] + [{"desdeMs": total}]) if sig["desdeMs"] - c["desdeMs"] < 10000]
+    lineas = [f"{t(c['desdeMs'])} {c['texto']}" for c in caps]
+    nota = []
+    if len(caps) < 3 or cortos:
+        nota = ["", "(Ojo: YouTube solo muestra capítulos si hay 3 o más y cada uno dura al menos 10 s.)"]
+    with open(ruta, "w", encoding="utf-8") as f:
+        f.write("\n".join(lineas + nota) + "\n")
+    return f"Capítulos para YouTube: {ruta}"
+
+
+def cuadros_con_fallas(video):
+    """Busca "parpadeos": un solo cuadro que cambia de golpe (negro, blanco o basura) y vuelve al cuadro siguiente.
+    Mide el brillo promedio de cada cuadro (a 64 px de ancho) y marca los que saltan más de 35 niveles respecto a
+    sus dos vecinos mientras los vecinos se parecen entre sí. Devuelve los segundos donde pasa."""
+    r = subprocess.run(["ffmpeg", "-v", "error", "-i", video, "-vf", "scale=64:-2,signalstats,metadata=print:file=-", "-an", "-f", "null", "-"],
+                       capture_output=True, text=True)
+    tiempos = [float(x) for x in re.findall(r"pts_time:([\d.]+)", r.stdout)]
+    brillo = [float(x) for x in re.findall(r"lavfi\.signalstats\.YAVG=([\d.]+)", r.stdout)]
+    fallas = []
+    for i in range(1, min(len(brillo), len(tiempos)) - 1):
+        a, b, c = brillo[i - 1], brillo[i], brillo[i + 1]
+        if abs(b - a) > 35 and abs(b - c) > 35 and abs(a - c) < 8:
+            fallas.append(tiempos[i])
+    return fallas
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("video")
@@ -55,6 +97,7 @@ def main():
     ap.add_argument("--escala", type=float, default=1.0, help="0.5 en calidad preview")
     ap.add_argument("--lufs", type=float, default=-14.0)
     ap.add_argument("--pico", type=float, default=-1.0)
+    ap.add_argument("--niveles", default="", help="informe de la mezcla (música y efectos contra la voz)")
     a = ap.parse_args()
     video, plan = a.video, a.plan
     edit = json.load(open(plan, encoding="utf-8"))
@@ -81,6 +124,21 @@ def main():
     esperado = edit["durationInFrames"] / edit["fps"]
     (bien if abs(d["duracion"] - esperado) < 0.1 else problemas).append(f"Duración {d['duracion']:.2f} s (plan: {esperado:.2f} s)")
 
+    fallas = cuadros_con_fallas(video)
+    if fallas:
+        problemas.append("Cuadros con fallas (parpadeo de 1 cuadro) en: " + ", ".join(f"{t:.2f} s" for t in fallas[:8]))
+    else:
+        bien.append("Sin cuadros con fallas")
+    niveles = a.niveles
+    if niveles and os.path.exists(niveles):
+        with open(niveles, encoding="utf-8") as f:
+            n = json.load(f)
+        if n.get("musicaBajoVozDb") is not None:
+            (bien if n["musicaBajoVozDb"] >= 12 else problemas).append(f"Música {n['musicaBajoVozDb']:.0f} dB debajo de la voz (mínimo 12)")
+        if n.get("efectos"):
+            (bien if (n.get("efectoMasFuerteDb") or -99) <= 3.05 else problemas).append(
+                f"{n['efectos']} efectos medidos contra la voz (el más fuerte: {n['efectoMasFuerteDb']:+.0f} dB)")
+
     cierre = edit.get("cierre", {}).get("desdeFrame", edit["durationInFrames"]) / edit["fps"]
     negros = [(float(a), float(b)) for a, b in re.findall(r"black_start:([\d.]+) black_end:([\d.]+)", err)]
     negros = [n for n in negros if n[0] < cierre - 0.2]
@@ -98,6 +156,9 @@ def main():
     srt = os.path.splitext(video)[0] + ".srt"
     n = escribir_srt(edit, srt)
     bien.append(f"Subtítulos: {srt} ({n} bloques)")
+    cap = escribir_capitulos(edit, os.path.splitext(video)[0] + "_capitulos.txt")
+    if cap:
+        bien.append(cap)
 
     print("CONTROL DE CALIDAD")
     for b in bien:

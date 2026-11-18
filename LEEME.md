@@ -40,6 +40,24 @@ bash scripts/editar.sh videos/mi-video.mov --preset tiktok
 - No repite trabajo: si el video es el mismo, no lo vuelve a transcribir.
 - Aprende de tus correcciones (las guarda en `estilo.md`).
 
+## Cosas nuevas que le puedes pedir a Claude
+- **"Muéstrame el storyboard"**: una página con un clip por cada parte del video. A cada una le pones **Keep** (se queda),
+  **Maybe** (cámbiala: escribes cómo) o **Drop** (quítala), le das Enviar y le dices a Claude "listo".
+- **"Pon mi marca"** (con el link de tu página, o tus colores): todos los videos salen con tus colores y fuentes.
+- **"Hazme un Brand Lab"**: 22 muestras de estilos para que escojas los que te gustan.
+- **"Pon el título detrás de mi cabeza"** o **"cámbiame el fondo"** (sin pantalla verde).
+- **"Saca clips cortos de este video largo"**.
+- **"Quiero editar borrando texto"**: Claude te da el guion; borras las frases que sobran y eso se corta del video.
+- **"Edita esta grabación de pantalla"**: le pone zoom solo donde pasa algo.
+- **/palitos, /minimalista, /despiece, /mapa-ruta, /grafica**: animaciones completas sin grabar nada.
+
+## Para grabar mejor
+- No te preocupes por las pausas ni por repetir: se cortan solas.
+- Deja un poco de aire arriba de tu cabeza (ahí van los títulos).
+- Si puedes, graba en 4K: los acercamientos quedan más nítidos.
+- Di claras las palabras importantes: los gráficos aparecen justo cuando las dices.
+- Antes de un render largo, cierra Chrome y Spotify: con poca memoria (8 GB) el render va mucho más lento.
+
 ## Configuración
 Todo está en **editor.config.json**: presets (`colegio-tv`, `tiktok`, `youtube`, `documental`), formatos con sus
 zonas seguras (dónde no tapan los botones de TikTok ni recortan los televisores), calidades y volumen.

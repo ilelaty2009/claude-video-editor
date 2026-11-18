@@ -63,7 +63,7 @@
   "estilos": {
     "clase":      { "look": "cine",   "subtitulos": "cine",   "color": "natural", "ritmo": 8, "sfx": true, "barraProgreso": false, "cierre": true,
                     "musica": { "animo": "calma",   "volumen": 0.12, "volumenHablando": 0.035 } },
-    "tiktok":     { "look": "tiktok", "subtitulos": "tiktok", "color": "vivo",    "ritmo": 3, "sfx": true, "barraProgreso": true,  "cierre": false,
+    "tiktok":     { "look": "tiktok", "subtitulos": "tiktok", "color": "vivo",    "silencio": 0.15, "ritmo": 3, "sfx": true, "barraProgreso": true,  "cierre": false,
                     "musica": { "animo": "energia", "volumen": 0.2,  "volumenHablando": 0.06 } },
     "youtube":    { "look": "cine",   "subtitulos": "cine",   "color": "cine",    "ritmo": 5, "sfx": true, "barraProgreso": false, "cierre": true,
                     "musica": { "animo": "lofi",    "volumen": 0.18, "volumenHablando": 0.055 } },

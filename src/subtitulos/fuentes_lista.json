@@ -1,0 +1,38 @@
+{
+ "Anton": [
+  {
+   "archivo": "anton-latin-400-normal.woff2",
+   "peso": "400"
+  }
+ ],
+ "Inter": [
+  {
+   "archivo": "inter-latin-700-normal.woff2",
+   "peso": "700"
+  },
+  {
+   "archivo": "inter-latin-900-normal.woff2",
+   "peso": "900"
+  }
+ ],
+ "Montserrat": [
+  {
+   "archivo": "montserrat-latin-700-normal.woff2",
+   "peso": "700"
+  },
+  {
+   "archivo": "montserrat-latin-900-normal.woff2",
+   "peso": "900"
+  }
+ ],
+ "Poppins": [
+  {
+   "archivo": "poppins-latin-700-normal.woff2",
+   "peso": "700"
+  },
+  {
+   "archivo": "poppins-latin-900-normal.woff2",
+   "peso": "900"
+  }
+ ]
+}

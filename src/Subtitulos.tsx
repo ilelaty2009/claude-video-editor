@@ -11,7 +11,7 @@ import { Pagina, paginar, textoVisible } from "./subtitulos/disposicion";
 import { ALTO_LINEA, arribaBloque, Ubicacion, ubicar } from "./subtitulos/ubicacion";
 
 // Una palabra del subtítulo. color/emoji/zoom vienen de "destacadas" en los extras.
-export type Palabra = Caption & { color?: string; destacada?: boolean; emoji?: string; zoom?: boolean };
+export type Palabra = Caption & { color?: string; destacada?: boolean; emoji?: string; zoom?: boolean; caja?: boolean };
 
 export const armarPaginas = (captions: Palabra[], e: EstiloSub, u: Ubicacion): Pagina[] =>
   paginar(captions, {
@@ -81,19 +81,21 @@ const PaginaVista: React.FC<{ pagina: Pagina; palabras: Palabra[]; e: EstiloSub;
                 const desde = ahoraMs - p.startMs;
                 const pop = esActiva && e.pop ? interpolate(desde, [0, 110], [p.destacada ? 1.16 : 1.1, 1.03], { ...clamp, easing: Easing.out(Easing.cubic) }) : 1;
                 const giro = p.destacada && esActiva && e.pop ? interpolate(desde, [0, 140], [-6, -2], { ...clamp, easing: Easing.out(Easing.cubic) }) : 0;
-                const enPastilla = esActiva && e.pastilla;
-                const color = enPastilla ? e.pastilla!.texto : esActiva ? p.color ?? e.colorActiva : p.color ?? e.colorTexto;
+                // la palabra va en una caja de color: la activa en estilo "resaltado", o una destacada con "caja"
+                const enPastilla = (esActiva && e.pastilla) || (p.caja && !futura);
+                const fondoCaja = p.caja ? p.color ?? e.colorActiva : e.pastilla?.color;
+                const color = enPastilla ? (p.caja ? "#111111" : e.pastilla!.texto) : esActiva ? p.color ?? e.colorActiva : p.color ?? e.colorTexto;
                 return (
                   <span
                     key={i}
                     style={{
                       display: "inline-block",
-                      padding: `0 ${tam * (p.destacada && e.pop ? 0.12 : 0.06) + (e.pastilla ? tam * 0.12 : 0)}px`,
+                      padding: `0 ${tam * (p.destacada && e.pop ? 0.12 : 0.06) + (e.pastilla || p.caja ? tam * 0.12 : 0)}px`,
                       fontSize: p.destacada ? tam * e.escalaDestacada : undefined,
                       color,
                       opacity: futura ? e.opacidadFuturas : 1,
-                      background: enPastilla ? e.pastilla!.color : undefined,
-                      borderRadius: e.pastilla ? tam * 0.18 : undefined,
+                      background: enPastilla ? fondoCaja : undefined,
+                      borderRadius: e.pastilla || p.caja ? tam * 0.18 : undefined,
                       WebkitTextStroke: borde && !enPastilla ? `${borde}px ${e.borde!.color}` : undefined,
                       paintOrder: "stroke fill",
                       transform: `scale(${pop}) rotate(${giro}deg)`,
@@ -123,13 +125,17 @@ export const Subtitulos: React.FC<{
   estilo: NombreEstiloSub;
   zona?: Zona;
   encuadre?: string;
-}> = ({ captions, estilo, zona, encuadre }) => {
+  ocultar?: { desdeMs: number; hastaMs: number }[]; // tramos sin subtítulos (p. ej. una frase cinética ya muestra las palabras)
+  dividida?: number; // 0 = normal … 1 = pantalla dividida arriba/abajo (algunos estilos se van a la unión)
+}> = ({ captions, estilo, zona, encuadre, ocultar, dividida = 0 }) => {
   const { fps, width, height } = useVideoConfig();
   const e = estilosSub[estilo] ?? estilosSub.tiktok;
   const u = useMemo(() => ubicar(e, width, height, zona, encuadre), [e, width, height, zona, encuadre]);
   const paginas = useMemo(() => armarPaginas(captions, e, u), [captions, e, u]);
+  // con pantalla dividida, los estilos que lo piden se deslizan a la unión de las dos mitades (y vuelven después)
+  const aLaUnion = e.centroDividida && height > width ? (height * e.centroDividida - u.y) * dividida : 0;
   return (
-    <AbsoluteFill>
+    <AbsoluteFill style={{ transform: aLaUnion ? `translateY(${aLaUnion}px)` : undefined }}>
       {e.banda ? (
         // banda oscura suave detrás: se leen aunque el fondo sea una pared o una camisa blanca
         <AbsoluteFill
@@ -140,6 +146,7 @@ export const Subtitulos: React.FC<{
         />
       ) : null}
       {paginas.map((p, i) => {
+        if ((ocultar ?? []).some((o) => p.startMs >= o.desdeMs - 100 && p.startMs < o.hastaMs)) return null;
         const from = Math.round((p.startMs / 1000) * fps);
         const dur = Math.max(1, Math.round((p.endMs / 1000) * fps) - from);
         return (

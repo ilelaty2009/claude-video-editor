@@ -1,0 +1,13 @@
+{
+ "tipo": "palitos",
+ "formato": "reel",
+ "fondo": "barco",
+ "musica": "lofi",
+ "pasos": [
+  {"texto": "¿Por qué los piratas usaban parche?", "personajes": [{"x": 0.45, "pose": "pensando", "accesorio": "pirata"}], "objetos": ["barril", "cofre"]},
+  {"texto": "Una teoría popular dice que no era por perder un ojo", "personajes": [{"x": 0.45, "pose": "senala", "accesorio": "pirata"}], "objetos": ["barril", "cofre"]},
+  {"texto": "Un ojo se quedaba acostumbrado a la oscuridad", "personajes": [{"x": 0.45, "pose": "parado", "accesorio": "pirata", "dice": "¡Este ojo ve en la oscuridad!"}], "objetos": ["barril", "cofre"]},
+  {"texto": "Así podía ver bajo cubierta en un segundo", "personajes": [{"x": 0.5, "pose": "camina", "accesorio": "pirata"}], "objetos": ["barril", "cofre"]},
+  {"texto": "No está comprobado, pero tiene sentido", "personajes": [{"x": 0.45, "pose": "sorprendido", "accesorio": "pirata"}], "objetos": ["barril", "cofre"]}
+ ]
+}

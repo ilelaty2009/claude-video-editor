@@ -13,10 +13,14 @@ const letras =
   Array.from({ length: 95 }, (_, i) => String.fromCharCode(32 + i)).join("") +
   "ÁÉÍÓÚÑÜáéíóúñü¿¡«»“”‘’…–—°ºª€";
 const salida = {};
+const lista = {}; // familia -> [{archivo, peso}]  (la lee src/fuentes.ts para cargarlas)
+// nombres.json (lo escribe scripts/fuente_google.py): "spacegrotesk" -> "Space Grotesk"
+const rutaNombres = path.join(carpeta, "nombres.json");
+const nombres = fs.existsSync(rutaNombres) ? JSON.parse(fs.readFileSync(rutaNombres, "utf8")) : {};
 for (const archivo of fs.readdirSync(carpeta).filter((a) => a.endsWith(".woff2")).sort()) {
   // montserrat-latin-900-normal.woff2 -> Montserrat-900
   const [nombre, , peso] = archivo.split("-");
-  const clave = `${nombre[0].toUpperCase()}${nombre.slice(1)}-${peso}`;
+  const clave = `${nombres[nombre] ?? nombre[0].toUpperCase() + nombre.slice(1)}-${peso}`;
   const fuente = fontkit.openSync(path.join(carpeta, archivo));
   const anchos = {};
   for (const c of letras) {
@@ -24,7 +28,10 @@ for (const archivo of fs.readdirSync(carpeta).filter((a) => a.endsWith(".woff2")
     if (g && g.id !== 0) anchos[c] = Math.round((g.advanceWidth / fuente.unitsPerEm) * 1000) / 1000;
   }
   salida[clave] = { anchos, porDefecto: anchos["M"] ?? 0.8 };
+  const familia = clave.slice(0, clave.lastIndexOf("-"));
+  (lista[familia] ??= []).push({ archivo, peso });
 }
 const destino = path.join(raiz, "src", "subtitulos", "metricas.json");
 fs.writeFileSync(destino, JSON.stringify(salida, null, 1) + "\n");
+fs.writeFileSync(path.join(raiz, "src", "subtitulos", "fuentes_lista.json"), JSON.stringify(lista, null, 1) + "\n");
 console.log(`OK: ${Object.keys(salida).length} fuentes medidas -> ${path.relative(raiz, destino)}`);

@@ -4,14 +4,31 @@
 
 Editor de video automático pensado para usarse con [Claude Code](https://claude.com/claude-code): grabas, pones el video en
 `videos/`, y Claude lo edita. Transcribe con Whisper, corta silencios y repeticiones, pone subtítulos palabra por palabra,
-zooms que siguen la cara, títulos, capítulos, escenas animadas, b-roll, color, música original con ducking y efectos de
-sonido. Renderiza con [Remotion](https://www.remotion.dev) **a 60 fps**. Todo corre en tu computador, gratis.
+zooms que siguen la cara, títulos (también **detrás de la cabeza**), capítulos, 25 tipos de escenas animadas, **pantalla
+dividida**, banners fijos, storyboard para revisar, tu propia marca,
+gráficas que se construyen solas, mapas con ruta, llamada a la acción animada, b-roll, color, música original con ducking,
+efectos de sonido y censura con pitido. Renderiza con [Remotion](https://www.remotion.dev) **a 60 fps**. Todo corre en tu
+computador, gratis.
 
 ![Demo: subtítulos karaoke y escenas animadas](docs/demo.gif)
 
 | 16:9 (TV / proyector) | 9:16 (TikTok / Reels) |
 |---|---|
 | ![16:9](docs/tv.jpg) | ![9:16](docs/reel.jpg) |
+
+Estilo "reel de tutorial" (`demo/reel_extras.json`): pantalla dividida, subtítulos de una palabra, banner fijo y
+llamada a la acción animada:
+
+![Pantalla dividida, banner y llamada a la acción](docs/reel_dividida.jpg)
+
+Animaciones explicativas desde cero (comandos `/palitos`, `/despiece`, `/minimalista`, `/mapa-ruta`, `/grafica` en
+Claude Code, o `bash scripts/animar.sh receta.json`), con voz narrada, música y audio masterizado:
+
+![Animaciones: palitos, despiece, minimalista y mapa 3D](docs/animaciones.jpg)
+
+Brand Lab: muestras de estilo con tu marca para calificar (Keep / Maybe / Drop), igual que el storyboard de cada video:
+
+![Brand Lab: subtítulos, banners, pantalla dividida, frase cinética, lista, diagrama, gráfica y ventana](docs/brand_lab.jpg)
 
 Estilos de subtítulos (`--subtitulos`):
 
@@ -43,8 +60,25 @@ bash scripts/editar.sh videos/mi-video.mov --formato cuadrado --calidad preview
 | `--preset` | `colegio-tv`, `tiktok`, `youtube`, `documental` |
 | `--formato` | `tv` (16:9 1920x1080), `reel` (9:16 1080x1920), `cuadrado` (1:1 1080x1080), `retrato` (4:5 1080x1350) |
 | `--calidad` | `preview` (media resolución, rápida), `final` (H.264 para TikTok/WhatsApp/proyectores), `maxima` |
-| `--subtitulos` | `cine`, `caja`, `tiktok`, `resaltado` |
+| `--subtitulos` | `cine`, `caja`, `tiktok`, `resaltado`, `etiqueta` (una palabra a la vez) |
 | `--solo-preparar` | transcribe y arma el plan sin renderizar (para revisar) |
+| `--storyboard` | render rápido + página para calificar cada tramo: Keep / Maybe / Drop |
+
+Más formas de trabajar:
+
+| Quiero… | Comando |
+|---|---|
+| Revisar cada tramo antes del render final | `bash scripts/editar.sh … --storyboard` y `python scripts/storyboard.py servir X` |
+| Editar borrando texto (como Descript) | `python scripts/guion.py exportar …` → borras frases → `guion.py aplicar …` |
+| Sacar clips cortos de un video largo | `python scripts/clips.py trabajo/X_transcripcion.json` |
+| Poner mi marca (colores y fuentes de mi web) | `python scripts/marca.py desde-web https://…` |
+| Calificar 22 muestras de estilo (Brand Lab) | `python scripts/brand_lab.py` |
+| Un efecto 3D (HyperFrames) | `bash scripts/hyperframes.sh tarjeta3d --formato reel` |
+| Un sonido que me falta | `python scripts/generar_sonido.py swipe` |
+| Unir varios clips | `bash scripts/editar.sh videos/a.mov videos/b.mov --preset tiktok` |
+| Seguir en DaVinci o Premiere | `python scripts/exportar_edl.py trabajo/X_edit.json videos/X.mov` |
+
+(`python` = `.venv/bin/python`.) Cómo se compara con otros editores: [COMPARACION.md](COMPARACION.md).
 
 El resultado queda en `salida/` con su portada (`_portada.jpg`) y subtítulos (`.srt`).
 Toda la configuración vive en [`editor.config.json`](editor.config.json). Ejemplo de extras: [`demo/fotosintesis_extras.json`](demo/fotosintesis_extras.json).
@@ -58,7 +92,11 @@ Toda la configuración vive en [`editor.config.json`](editor.config.json). Ejemp
   cada letra), siempre dentro de la zona segura del formato, letra ≥ 5,5 % del alto en TV, contraste ≥ 4,5:1.
 - **Flujo**: caché por huella del video (no vuelve a transcribir lo mismo), render por partes que se **reanuda** si se
   interrumpe, reintento automático si Remotion se cuelga, mensajes de error en español con qué hacer.
-- `npm test`: tipos + 63 pruebas de subtítulos/animación (vitest) + 31 pruebas de formatos, plan, fps, duración, audio y memoria (Python).
+- **Títulos detrás de la cabeza y fondo nuevo** sin pantalla verde (recorte de la persona con MODNet, local).
+- **Revisión**: storyboard con Keep / Maybe / Drop, revisión de cada corte, música ≥ 12 dB debajo de la voz, cada efecto
+  medido contra la voz, subtítulos medidos contra el audio (nunca se adelantan), escaneo de cuadros con fallas.
+- `npm test`: tipos + 105 pruebas (vitest) + 74 pruebas (Python) = **179**: subtítulos, formatos, fps, duración, audio,
+  sincronía, storyboard, marca, sonidos, clips, guion, animaciones.
   `npm run prueba:render`: edita el demo en 16:9 y 9:16 y pasa el control de calidad.
 
 ## Estructura
@@ -66,6 +104,8 @@ Toda la configuración vive en [`editor.config.json`](editor.config.json). Ejemp
 scripts/editor.py      el flujo completo (lo llama scripts/editar.sh)
 scripts/plan_edit.py   cortes, subtítulos, escenas, capítulos -> public/edit.json
 scripts/mezcla.py      mezcla de audio exacta; scripts/audio.py mide y masteriza
+scripts/storyboard.py  página de revisión; brand_lab.py, marca.py, guion.py, clips.py, pantalla.py, recorte_persona.py…
+brand/                 tu marca (colores, fuentes); hyperframes/  efectos en HTML
 src/                   Remotion: Edit.tsx, Subtitulos.tsx, escenas/, subtitulos/, tiempo.ts, formatos.ts
 pruebas/               pruebas automáticas
 editor.config.json     presets, formatos, calidades, audio
@@ -76,7 +116,10 @@ editor.config.json     presets, formatos, calidades, audio
 - **Remotion** tiene licencia propia ([remotion.dev/license](https://www.remotion.dev/license)): **gratis** para personas,
   organizaciones sin ánimo de lucro y empresas con fines de lucro de hasta 3 empleados; empresas más grandes necesitan
   una licencia de pago. Para uso personal o de estudiante es gratis.
-- Whisper (faster-whisper): MIT. ffmpeg: LGPL/GPL. Detector de caras UltraFace: MIT. Fuentes: SIL OFL 1.1 (avisos y licencia completa en `public/fuentes/LICENCIAS_FUENTES.txt`).
+- Whisper (faster-whisper): MIT. ffmpeg: LGPL/GPL. Detector de caras UltraFace: MIT. Fuentes: SIL OFL 1.1
+  (avisos y texto completo en `public/fuentes/LICENCIAS_FUENTES.txt`).
+- HyperFrames (efectos): Apache 2.0; usa GSAP (gratis, licencia propia de GSAP) desde internet al renderizar un efecto.
+  MODNet (recorte de personas): Apache 2.0, se descarga solo la primera vez (25 MB). yt-dlp: Unlicense.
 - La música la compone el propio editor y los efectos son sintetizados: no tienen derechos de terceros.
 
 ---
@@ -98,13 +141,21 @@ bash scripts/editar.sh videos/my-video.mov --preset colegio-tv   # 16:9 for TV/p
 bash scripts/editar.sh videos/my-video.mov --preset tiktok       # 9:16
 ```
 Formats: `tv` 16:9, `reel` 9:16, `cuadrado` 1:1, `retrato` 4:5. Quality: `preview`, `final`, `maxima`.
-Caption styles: `cine`, `caja` (boxed, best on projectors), `tiktok`, `resaltado` (highlight pill).
+Caption styles: `cine`, `caja` (boxed, best on projectors), `tiktok`, `resaltado` (highlight pill), `etiqueta` (one word
+at a time). Scenes include split screen (stacked, side-by-side or face-in-circle), self-building charts, animated map
+routes, a follow/comment call-to-action, pinned banners and profanity bleeping.
 All settings live in `editor.config.json`. Interface and messages are in Spanish.
 
 **Guarantees, checked automatically:** 60 fps output; final mix at -14 LUFS with true peak ≤ -1 dBTP measured on the
 delivered file; captions max 2 lines, never split words, always inside each format's safe area, contrast ≥ 4.5:1;
 content-hash cache (no re-transcribing), chunked renders that **resume** after interruption, automatic retry if a
-render hangs. `npm test` runs type checks plus 94 automated tests.
+render hangs. It also makes explainer animations from scratch (stick-figure cartoons, minimal graphics, exploded product views, 3D map
+routes, self-building charts) with free macOS text-to-speech narration: `bash scripts/animar.sh recipe.json`.
+New in 2.3: storyboard review page (Keep / Maybe / Drop per beat), brand sheet + Brand Lab, titles behind the head and
+background replacement (local matting), cinematic screen recordings with auto-zoom, HyperFrames 3D effects, text-based
+editing, long-to-short clip suggestions, EDL export, caption sync measured against the voice, per-effect loudness checks.
+See [COMPARACION.md](COMPARACION.md) for an honest comparison with other editors.
+`npm test` runs type checks plus 179 automated tests.
 
 **Licenses:** project code is [MIT](LICENSE). **Remotion has its own license**: free for individuals, non-profits and
 for-profit companies with up to 3 employees; larger companies need a paid company license. Whisper (MIT), ffmpeg

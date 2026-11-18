@@ -3,15 +3,17 @@ import React from "react";
 import { AbsoluteFill, Easing, interpolate, spring } from "remotion";
 import { clamp, curvas, salida, salidaEscalonada, useConfigDiseno, useCuadro } from "../tiempo";
 import { fuenteEscenas } from "../fuentes";
+import { marca } from "../marca";
 import { anchoTexto } from "../subtitulos/disposicion";
 import type { Escena } from "./tipos";
 
+// Colores de la marca (brand/marca.json)
 export const colores = {
-  fondo: "radial-gradient(ellipse at 50% 35%, #1d2447 0%, #0d1024 60%, #07080f 100%)",
-  azul: "#5CC8FF",
-  amarillo: "#FFC94D",
-  rojo: "#FF3B5C",
-  verde: "#2ED47A",
+  fondo: `radial-gradient(ellipse at 50% 35%, ${marca.colores.fondo[0]} 0%, ${marca.colores.fondo[1] ?? marca.colores.fondo[0]} 60%, ${marca.colores.fondo[2] ?? marca.colores.fondo[0]} 100%)`,
+  azul: marca.colores.azul,
+  amarillo: marca.colores.amarillo,
+  rojo: marca.colores.rojo,
+  verde: marca.colores.verde,
   blanco: "#FFFFFF",
 };
 
@@ -62,6 +64,22 @@ export const DestelloLuz: React.FC<{ duracion?: number }> = ({ duracion = 20 }) 
 
 type Entrada = Escena["entrada"];
 
+// franjas horizontales de la transición glitch (solo los primeros cuadros)
+const Franjas: React.FC = () => {
+  const frame = useCuadro();
+  const { height } = useConfigDiseno();
+  if (frame > 9) return null;
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none", mixBlendMode: "screen" }}>
+      {[0, 1, 2, 3].map((i) => {
+        const v = Math.sin((Math.floor(frame) + 1) * (i + 3) * 12.9898) * 43758.5;
+        const y = (v - Math.floor(v)) * height;
+        return <div key={i} style={{ position: "absolute", left: 0, right: 0, top: y, height: 4 + i * 6, background: i % 2 ? "rgba(0,240,255,0.5)" : "rgba(255,0,70,0.5)" }} />;
+      })}
+    </AbsoluteFill>
+  );
+};
+
 export const Fondo: React.FC<{ children?: React.ReactNode; entrada?: Entrada }> = ({ children, entrada }) => {
   const frame = useCuadro();
   const { width } = useConfigDiseno();
@@ -81,6 +99,17 @@ export const Fondo: React.FC<{ children?: React.ReactNode; entrada?: Entrada }> 
     transform = `scale(${1 + s * 0.6})`;
     filtro = `blur(${s * 22}px)`;
     op = Math.min(sale, interpolate(entra, [0, 0.4], [0, 1], clamp));
+  } else if (entrada === "glitch") {
+    // falla digital: tirones laterales y colores separados (rojo/cian) que se calman en 10 cuadros
+    const s = interpolate(frame, [0, 10], [1, 0], { ...clamp, easing: Easing.out(Easing.cubic) });
+    const azar = (n: number) => {
+      const v = Math.sin(n * 91.7 + 13.3) * 43758.5;
+      return v - Math.floor(v);
+    };
+    const salto = (azar(Math.floor(frame)) - 0.5) * 70 * s;
+    transform = `translateX(${salto}px)`;
+    filtro = s > 0.01 ? `drop-shadow(${14 * s}px 0 0 rgba(255,0,70,0.85)) drop-shadow(${-14 * s}px 0 0 rgba(0,240,255,0.85))` : "";
+    op = Math.min(sale, interpolate(frame, [0, 2], [0, 1], clamp));
   }
   return (
     <AbsoluteFill style={{ opacity: op }}>
@@ -91,6 +120,7 @@ export const Fondo: React.FC<{ children?: React.ReactNode; entrada?: Entrada }> 
         </AbsoluteFill>
       </AbsoluteFill>
       {entrada === "luz" ? <DestelloLuz /> : null}
+      {entrada === "glitch" ? <Franjas /> : null}
     </AbsoluteFill>
   );
 };
@@ -98,7 +128,7 @@ export const Fondo: React.FC<{ children?: React.ReactNode; entrada?: Entrada }> 
 // ---------- TITULAR ----------
 export const Titular: React.FC<{ e: Escena; ancho?: number }> = ({ e, ancho }) => {
   const frame = useCuadro();
-  const { fps, durationInFrames } = useConfigDiseno();
+  const { fps, durationInFrames, width, height } = useConfigDiseno();
   const k = useK();
   const lado = e.lado ?? "izq";
   const lineas = e.lineas ?? [];
@@ -114,7 +144,8 @@ export const Titular: React.FC<{ e: Escena; ancho?: number }> = ({ e, ancho }) =
   return (
     <AbsoluteFill
       style={{
-        padding: `${130 * k}px ${110 * k}px ${210 * k}px`,
+        // en vertical, "centro" va en la mitad de arriba: el centro y la parte de abajo son de los subtítulos
+        padding: height > width && (e.vertical ?? "arriba") === "centro" ? `${130 * k}px ${110 * k}px ${height * 0.42}px` : `${130 * k}px ${110 * k}px ${210 * k}px`,
         justifyContent: justify,
         alignItems: align,
         pointerEvents: "none",

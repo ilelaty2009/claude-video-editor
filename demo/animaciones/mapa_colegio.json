@@ -1,0 +1,15 @@
+{
+ "tipo": "mapa",
+ "formato": "reel",
+ "origen": "Casa",
+ "destino": "Colegio",
+ "tiempo": "12 min",
+ "distancia": "3,1 km",
+ "calles": ["Calle 80", "Carrera 15", "Av. Principal"],
+ "musica": "energia",
+ "pasos": [
+  {"texto": "Este es mi camino de la casa al colegio"},
+  {"texto": "Salgo por la calle 80 y giro en la carrera 15"},
+  {"texto": "En total son doce minutos en bicicleta"}
+ ]
+}

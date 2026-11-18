@@ -23,7 +23,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # "cuadros de diseño", y al final se pasa al fps real del video (60): así sonido e imagen coinciden a cualquier fps.
 FPS_DISENO = 30
 
-PANTALLA_COMPLETA = {"engranajes", "tarjetas", "iconos", "cita", "numero", "lista", "linea_tiempo", "broll"}
+PANTALLA_COMPLETA = {"engranajes", "tarjetas", "iconos", "cita", "numero", "lista", "linea_tiempo", "broll", "grafica",
+                     "cinetica", "diagrama", "pantalla"}
 
 
 def _ms2f(ms, fps):
@@ -45,6 +46,8 @@ def cues_de_escena(e, fps):
         entrada = e.get("entrada") or "suave"
         if entrada == "luz":
             g.append((0, "brillo", 0.28, "transición con luz"))
+        elif entrada == "glitch":
+            g.append((0, "glitch", 0.26, "transición glitch"))
         elif entrada == "zoom":
             g.append((0, "riser", 0.16, "sube antes del zoom"))
             g.append((0, "impacto", 0.22, "golpe del zoom"))
@@ -77,11 +80,69 @@ def cues_de_escena(e, fps):
         for f in range(4, fin, 3):
             g.append((f, "tick", 0.08, "el número cuenta"))
         g.append((fin, "impacto", 0.25, "el número llega"))
+    elif t == "grafica":  # (igual que src/escenas/datos.tsx: se construye en el 65 % de la escena)
+        fin = int(max(FPS_DISENO, dur * 0.65))
+        for f in range(6, fin, 3):
+            g.append((f, "tick", 0.07, "la gráfica crece"))
+        g.append((fin, "impacto", 0.22, "la gráfica llega"))
+    elif t == "dividida":
+        g.append((0, "whoosh_corto", 0.3, "se divide la pantalla"))
+    elif t == "mapa":
+        g.append((0, "whoosh", 0.3, "aparece el mapa"))
+        g.append((int(max(FPS_DISENO, dur * 0.7)), "ding", 0.2, "llega al destino"))
+    elif t == "cta":
+        clic = dur * 0.32
+        palabra = e.get("palabra") or ""
+        g.append((0, "whoosh_corto", 0.28, "aparece la tarjeta"))
+        g.append((int(clic), "pop", 0.45, "clic en Seguir"))
+        f = clic + 10
+        while f < clic + 10 + len(palabra) * 2.2:
+            g.append((int(f), "tecla", 0.12, "escribe el comentario"))
+            f += 2.2
+        g.append((int(clic + 16 + len(palabra) * 2.2), "ding", 0.2, "comentario publicado"))
+    elif t == "cinetica":  # un toque suave por palabra
+        for p in e.get("palabras") or []:
+            g.append((en(p.get("enMs"), 4), "tick", 0.06, f"palabra '{p.get('texto', '')}'"))
+    elif t == "diagrama":
+        for i, nd in enumerate(e.get("nodos") or []):
+            g.append((en(nd.get("enMs"), 6 + i * 14), "pop", 0.35, f"aparece '{nd.get('texto', '')}'"))
+    elif t == "ventana":
+        texto = e.get("texto") or ""
+        fin = max(10.0, min(dur * 0.45, len(texto) * 0.9 + 6))
+        f = 4
+        while f < fin:
+            g.append((int(f), "tecla", 0.1, "se escribe"))
+            f += 3
+        for i, it in enumerate(e.get("items") or []):
+            g.append((en(it.get("enMs"), int(fin) + 6 + i * 10), "ding", 0.12, f"listo '{it.get('texto', '')}'"))
+    elif t == "collage":
+        for i, _ in enumerate(e.get("archivos") or []):
+            g.append((4 + i * 6, "pop", 0.3, f"foto {i + 1}"))
+    elif t == "capa":
+        g.append((0, "whoosh_corto", 0.26, "entra el efecto"))
+    elif t == "anotacion":
+        g.append((2, "whoosh_corto", 0.22, "se dibuja la anotación"))
     elif t == "nombre":
         g.append((0, "whoosh_corto", 0.3, "cartel de nombre"))
     elif t == "cita" and (e.get("entrada") or "suave") != "luz":
         g.append((2, "brillo", 0.2, "aparece la cita"))
     return [(desde + int(round(f * k)), a, v, f"{t}: {q}") for f, a, v, q in g if f < dur]
+
+
+_PICOS_PROPIOS = {}
+
+
+def _pico_propio(ruta):
+    """Dónde está el golpe de un sonido propio (se mide una vez; sirve para mp3, wav, m4a…)."""
+    if ruta not in _PICOS_PROPIOS:
+        try:
+            import oido
+
+            m = oido.medir(oido.cargar(ruta))
+            _PICOS_PROPIOS[ruta] = 0.0 if m.get("vacio") else round(m["inicio_seg"] + m["pico_seg"], 3)
+        except Exception:
+            _PICOS_PROPIOS[ruta] = 0.0
+    return _PICOS_PROPIOS[ruta]
 
 
 def poner_cues(edit, carpeta_public, reporte=None):
@@ -115,7 +176,14 @@ def poner_cues(edit, carpeta_public, reporte=None):
     ruta_picos = os.path.join(sfx_dir, "picos.json")
     picos = json.load(open(ruta_picos)) if os.path.exists(ruta_picos) else {}
     reales = {n[:-4] for n in os.listdir(os.path.join(sfx_dir, "real"))} if os.path.isdir(os.path.join(sfx_dir, "real")) else set()
-    faltan = [n for n in {c[1] for c in crudos} if (("real/" + n) if n in reales else n) not in picos]
+    # TUS sonidos (public/sfx/propios/whoosh.mp3, pop.wav…) mandan sobre los reales y los de fábrica
+    propios = {}
+    dir_propios = os.path.join(sfx_dir, "propios")
+    for a in sorted(os.listdir(dir_propios)) if os.path.isdir(dir_propios) else []:
+        nombre_a, ext = os.path.splitext(a)
+        if ext.lower() in (".wav", ".mp3", ".m4a", ".ogg", ".aif", ".aiff", ".flac"):
+            propios[nombre_a.lower()] = a
+    faltan = [n for n in {c[1] for c in crudos} if n not in propios and (("real/" + n) if n in reales else n) not in picos]
     if faltan:
         try:
             import oido
@@ -133,7 +201,11 @@ def poner_cues(edit, carpeta_public, reporte=None):
     cues = []
     for f, nombre, vol, que in sorted(crudos):
         clave = ("real/" + nombre) if nombre in reales else nombre
+        archivo = f"sfx/{clave}.wav"
         pico = picos.get(clave, 0.0)
+        if nombre in propios:
+            archivo = f"sfx/propios/{propios[nombre]}"
+            pico = _pico_propio(os.path.join(dir_propios, propios[nombre]))
         inicio_f = f - int(round(pico * fps))
         recorte = 0
         if inicio_f < 0:
@@ -141,8 +213,8 @@ def poner_cues(edit, carpeta_public, reporte=None):
         if f >= total or f < 0:
             continue
         v = vol * (0.75 if hablando[min(f, total)] else 1.0)
-        cues.append({"f": inicio_f, "golpe": f, "archivo": f"sfx/{clave}.wav", "recorte": recorte, "vol": round(v, 3),
-                     "que": que, "real": nombre in reales})
+        cues.append({"f": inicio_f, "golpe": f, "archivo": archivo, "recorte": recorte, "vol": round(v, 3),
+                     "que": que, "real": nombre in reales or nombre in propios})
     for x in especiales:  # sonidos pedidos a mano: se respetan tal cual (golpe alineado si se conoce)
         rel = x["archivo"][len("sfx/"):-4] if x["archivo"].startswith("sfx/") else ""
         pico = picos.get(rel, 0.0)

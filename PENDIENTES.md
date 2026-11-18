@@ -25,3 +25,36 @@ Lo que NO quedó hecho o NO se pudo verificar en esta sesión. Nada de esto romp
   ffmpeg y volver a medir rendimiento; con 8 GB de RAM no convenía.
 - **Identidad de git**: resuelto. Todos los commits en GitHub usan `Pablo <350574886+ilelaty2009@users.noreply.github.com>`,
   el correo privado de tu cuenta ilelaty2009 (sale tu foto y tu perfil). Tu Mac ya está configurado con ese correo.
+- **Del reel de referencia, lo que NO es edición**: las animaciones 3D, las figuras de palitos y la vista "explotada" del
+  teclado se generan con otras herramientas (skills de animación); el editor las puede USAR como b-roll (`dividida` o
+  `broll` con `archivo`), pero no las crea.
+- **Pantalla dividida con la vista previa de Remotion Studio**: el pitido de la censura solo existe en la mezcla final
+  (`scripts/mezcla.py`); en `npm run studio` se oye la palabra sin tapar.
+- **Animación 3D realista tipo "Zack D Films"** (la 1.ª de las 6 skills del reel): no se puede gratis y sin internet; esas
+  animaciones se hacen con generadores de video/3D con IA (de pago). Alternativas incluidas: /palitos y /minimalista.
+- **Mapa real**: /mapa-ruta dibuja una ciudad ilustrada, no las calles reales. Para el mapa real, usar una captura propia.
+- **Voces de la narración**: son las de macOS (`say`). Apple permite usarlas para tus propios proyectos; para videos de
+  TikTok con fines comerciales revisa la licencia de macOS (no verificado para uso comercial).
+
+- **Recorte de la persona (títulos detrás, fondo nuevo)**: con paredes muy claras queda un borde claro fino alrededor
+  del pelo (el modelo incluye algo de pared en el contorno). Se redujo afinando y adelgazando la máscara; quitarlo del
+  todo requiere "descontaminar" el color del borde (pendiente). Tarda ~4,5 s por cada segundo recortado (M2): por eso
+  solo se recorta donde hay títulos detrás o fondo nuevo.
+
+## Ronda 4 (reel + guía Claude × Remotion + comparación)
+- **No copiado de la competencia (por costo o por necesitar tus cuentas)**: publicar directo en TikTok/Instagram/YouTube,
+  corregir la mirada a cámara, doblaje con tu voz, b-roll generado con IA, 3D realista, transcripción con risas/aplausos
+  y "quién habla". Detalle y fuentes en COMPARACION.md.
+- **HyperFrames**: integrado con UN efecto de ejemplo (`tarjeta3d`). "Vidrio líquido" real y transiciones con shaders del
+  catálogo de HyperFrames no se agregaron (el vidrio se hizo en Remotion como banner `vidrio`; glitch como transición).
+  Necesita internet al renderizar un efecto (GSAP se carga de un CDN). Probado solo en vertical dentro del editor.
+- **Exportar a DaVinci (EDL)**: el archivo se genera y su formato se prueba, pero NO lo abrí en DaVinci/Premiere.
+- **Brand Lab**: genera 22 muestras con el video de demostración; "rehacer los Maybe con tus notas" lo hace Claude a
+  mano leyendo `respuestas.json` (no hay un botón automático).
+- **Grabaciones de pantalla**: probado con una grabación sintética; falta una grabación real de Pablo. No dibuja un
+  cursor suavizado (Screen Studio sí): solo hace el zoom.
+- **Marca desde una web**: probado con una sola página (milleemd.com). En páginas que cargan sus estilos con JavaScript
+  puede no encontrar colores.
+- **Clips de un video largo**: probado con la transcripción de 69 s de la entrevista; falta un video realmente largo.
+- **Storyboard en celular**: la página se probó en el navegador del computador, no en el teléfono.
+

@@ -1,0 +1,60 @@
+<!doctype html>
+<!-- EFECTO HYPERFRAMES: tarjeta que gira en 3D de verdad (perspectiva, dos caras, brillo que la recorre).
+     Fondo transparente: se pone ENCIMA del video con una escena {"tipo": "capa"}.
+     Se renderiza con: bash scripts/hyperframes.sh tarjeta3d --variables '{"frente":"ANTES","atras":"DESPUÉS"}' -->
+<html lang="es" data-composition-variables='[
+  {"id":"frente","type":"string","label":"Texto del frente","default":"ANTES"},
+  {"id":"atras","type":"string","label":"Texto de atrás","default":"DESPUÉS"},
+  {"id":"arriba","type":"string","label":"Texto pequeño","default":""},
+  {"id":"color","type":"color","label":"Color principal","default":"#FFC94D"},
+  {"id":"fondo","type":"color","label":"Color de la tarjeta","default":"#1d2447"}
+]'>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=__ANCHO__, height=__ALTO__" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { width: __ANCHO__px; height: __ALTO__px; overflow: hidden; background: transparent; }
+      #root { width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; perspective: 1600px; font-family: Inter, -apple-system, "Helvetica Neue", Arial, sans-serif; }
+      #sombra { position: absolute; width: 46%; height: 5%; top: 66%; border-radius: 50%; background: radial-gradient(ellipse, rgba(0,0,0,0.55), transparent 70%); filter: blur(14px); }
+      #tarjeta { position: relative; width: min(62vw, 760px); aspect-ratio: 16 / 10; transform-style: preserve-3d; }
+      .cara { position: absolute; inset: 0; border-radius: 36px; backface-visibility: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;
+              border: 2px solid rgba(255,255,255,0.28); box-shadow: 0 30px 80px rgba(0,0,0,0.45), inset 0 2px 0 rgba(255,255,255,0.25); }
+      .atras { transform: rotateY(180deg); }
+      .arriba { font-weight: 700; font-size: 34px; letter-spacing: 6px; text-transform: uppercase; color: rgba(255,255,255,0.75); margin-bottom: 14px; }
+      .texto { font-weight: 900; font-size: 120px; letter-spacing: -3px; text-transform: uppercase; color: #fff; text-align: center; line-height: 0.95; padding: 0 30px; }
+      .brillo { position: absolute; top: -20%; left: -60%; width: 45%; height: 140%; transform: rotate(18deg); background: linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent); }
+    </style>
+  </head>
+  <body>
+    <div id="root" data-composition-id="main" data-start="0" data-duration="4" data-width="__ANCHO__" data-height="__ALTO__" data-fps="60">
+      <div id="sombra" class="clip" data-start="0" data-duration="4" data-track-index="0"></div>
+      <div id="tarjeta" class="clip" data-start="0" data-duration="4" data-track-index="1">
+        <div class="cara frente"><div class="arriba"></div><div class="texto" id="t-frente"></div><div class="brillo"></div></div>
+        <div class="cara atras"><div class="arriba"></div><div class="texto" id="t-atras"></div><div class="brillo"></div></div>
+      </div>
+    </div>
+    <script>
+      const v = window.__hyperframes.getVariables();
+      document.getElementById("t-frente").textContent = v.frente;
+      document.getElementById("t-atras").textContent = v.atras;
+      document.getElementById("t-atras").style.color = v.color;
+      document.querySelectorAll(".arriba").forEach((e) => (e.textContent = v.arriba));
+      document.querySelectorAll(".cara").forEach((e) => (e.style.background = `linear-gradient(150deg, ${v.fondo}, #07080f)`));
+      const tl = gsap.timeline({ paused: true });
+      // entra desde abajo girando, se queda de frente, da la vuelta (3D real) y sale
+      tl.fromTo("#tarjeta", { y: 500, rotateY: -70, rotateX: 25, opacity: 0, scale: 0.7 }, { y: 0, rotateY: -8, rotateX: 6, opacity: 1, scale: 1, duration: 0.7, ease: "back.out(1.4)" }, 0);
+      tl.fromTo("#sombra", { opacity: 0, scaleX: 0.4 }, { opacity: 1, scaleX: 1, duration: 0.7, ease: "power3.out" }, 0);
+      tl.fromTo(".frente .brillo", { left: "-60%" }, { left: "130%", duration: 0.8, ease: "power2.inOut" }, 0.6);
+      tl.to("#tarjeta", { rotateY: 172, rotateX: -4, duration: 0.9, ease: "power3.inOut" }, 1.5);
+      tl.to("#sombra", { scaleX: 0.5, duration: 0.45, ease: "power2.in", yoyo: true, repeat: 1 }, 1.5);
+      tl.fromTo(".atras .brillo", { left: "-60%" }, { left: "130%", duration: 0.8, ease: "power2.inOut" }, 2.3);
+      tl.to("#tarjeta", { y: -30, duration: 0.9, ease: "sine.inOut" }, 2.4);
+      tl.to("#tarjeta", { y: 600, rotateY: 250, opacity: 0, scale: 0.7, duration: 0.5, ease: "power3.in" }, 3.5);
+      tl.to("#sombra", { opacity: 0, duration: 0.4 }, 3.5);
+      window.__timelines["main"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

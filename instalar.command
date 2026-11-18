@@ -72,7 +72,7 @@ echo "   Node $(node -v)"
 echo ">> Instalando Whisper y ffmpeg..."
 [ -d .venv ] || "$PY" -m venv .venv || fallar "No se pudo crear el entorno de Python."
 .venv/bin/pip install --quiet --upgrade pip || fallar "No se pudo actualizar pip."
-.venv/bin/pip install --quiet faster-whisper numpy imageio-ffmpeg || fallar "No se pudo instalar Whisper/ffmpeg."
+.venv/bin/pip install --quiet faster-whisper numpy imageio-ffmpeg yt-dlp || fallar "No se pudo instalar Whisper/ffmpeg/yt-dlp."
 FF="$(.venv/bin/python -c 'import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())')" || fallar "No se encontró ffmpeg."
 chmod +x "$FF" 2>/dev/null || true
 ln -sf "$FF" .venv/bin/ffmpeg

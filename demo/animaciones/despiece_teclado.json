@@ -1,0 +1,19 @@
+{
+ "tipo": "despiece",
+ "formato": "reel",
+ "producto": "Teclado mecánico",
+ "musica": "lofi",
+ "capas": [
+  {"nombre": "Teclas", "detalle": "plástico PBT", "color": "#ECE7DD", "patron": "teclas"},
+  {"nombre": "Interruptores", "detalle": "uno por tecla", "color": "#B9BDC6", "patron": "puntos"},
+  {"nombre": "Placa", "detalle": "aluminio", "color": "#8A8F99", "patron": "puntos"},
+  {"nombre": "Circuito", "detalle": "PCB · USB-C", "color": "#2E8B57", "patron": "circuito"},
+  {"nombre": "Espuma", "detalle": "menos ruido", "color": "#E9DFC4", "patron": "liso"}
+ ],
+ "pasos": [
+  {"texto": "Así se ve un teclado mecánico por dentro"},
+  {"texto": "Arriba van las teclas y debajo un interruptor por cada una"},
+  {"texto": "La placa los sostiene y el circuito lee cada pulsación"},
+  {"texto": "Y al fondo, espuma para que suene menos"}
+ ]
+}

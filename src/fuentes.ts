@@ -1,32 +1,20 @@
 // Fuentes guardadas en public/fuentes, así el render funciona sin internet.
-// Para agregar otra fuente: pon el .woff2 en public/fuentes y añádela aquí.
+// Para agregar una fuente de Google: .venv/bin/python scripts/fuente_google.py "Space Grotesk"
+// (la baja, la mide y queda disponible; luego ponla en brand/marca.json).
 import { loadFont } from "@remotion/fonts";
 import { staticFile } from "remotion";
 import { estilo } from "./estilo";
+import { familiaSegura, fuentesDisponibles, marca } from "./marca";
 
-const archivos: Record<string, { archivo: string; peso: string }[]> = {
-  Montserrat: [
-    { archivo: "montserrat-latin-700-normal.woff2", peso: "700" },
-    { archivo: "montserrat-latin-900-normal.woff2", peso: "900" },
-  ],
-  Poppins: [
-    { archivo: "poppins-latin-700-normal.woff2", peso: "700" },
-    { archivo: "poppins-latin-900-normal.woff2", peso: "900" },
-  ],
-  Anton: [{ archivo: "anton-latin-400-normal.woff2", peso: "400" }],
-  Inter: [
-    { archivo: "inter-latin-700-normal.woff2", peso: "700" },
-    { archivo: "inter-latin-900-normal.woff2", peso: "900" },
-  ],
-};
-
-// Se cargan la fuente de los subtítulos, Inter (escenas y look "cine") y Montserrat (subtítulos "resaltado").
-const cargar = new Set([estilo.fuente, "Inter", "Montserrat"]);
-for (const familia of cargar) {
-  for (const f of archivos[familia] ?? []) {
+const escenas = familiaSegura(marca.fuentes.escenas, "Inter");
+// Se cargan: la de subtítulos, la de escenas (marca), Inter y Montserrat (las usan estilos fijos como "resaltado").
+const cargar = new Set([estilo.fuente, escenas, "Inter", "Montserrat"]);
+// Solo en el navegador (donde Remotion renderiza): en las pruebas (Node) no hay dónde cargar fuentes.
+for (const familia of typeof document === "undefined" ? [] : cargar) {
+  for (const f of fuentesDisponibles[familia] ?? []) {
     loadFont({ family: familia, url: staticFile(`fuentes/${f.archivo}`), weight: f.peso });
   }
 }
 
 export const fontFamily = `"${estilo.fuente}", sans-serif`;
-export const fuenteEscenas = `"Inter", sans-serif`;
+export const fuenteEscenas = `"${escenas}", sans-serif`;

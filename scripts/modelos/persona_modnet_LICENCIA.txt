@@ -1,0 +1,3 @@
+persona_modnet.onnx — MODNet (recorte de personas / portrait matting), versión ONNX (se baja sola la 1.ª vez).
+Fuente: https://huggingface.co/Xenova/modnet (de https://github.com/ZHKKKe/MODNet)
+Licencia: Apache License 2.0 — https://www.apache.org/licenses/LICENSE-2.0

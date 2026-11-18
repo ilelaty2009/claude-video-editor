@@ -6,6 +6,11 @@ import tempfile
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RAIZ, "scripts"))
+# las pruebas usan las MISMAS herramientas que el editor (scripts/entorno.sh): ffmpeg de .venv y Node portátil
+os.environ["PATH"] = os.pathsep.join(
+    [p for p in (os.path.join(RAIZ, ".venv", "bin"), os.path.join(RAIZ, ".tools", "node", "bin")) if os.path.isdir(p)]
+    + [os.environ.get("PATH", "")]
+)
 
 
 def carpeta_temporal():

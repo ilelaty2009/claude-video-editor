@@ -1,6 +1,6 @@
 {
   "name": "claude-video-editor",
-  "version": "2.0.0",
+  "version": "2.3.0",
   "private": true,
   "description": "Editor de videos con Claude Code: Whisper transcribe, Claude decide, Remotion renderiza a 60 fps. / Video editor driven by Claude Code: Whisper transcribes, Claude decides, Remotion renders at 60 fps.",
   "license": "MIT",
@@ -27,6 +27,7 @@
   "devDependencies": {
     "@types/react": "^19.0.0",
     "fontkit": "2.0.4",
+    "hyperframes": "^0.9.27",
     "typescript": "^5.6.0",
     "vitest": "3.2.4"
   }

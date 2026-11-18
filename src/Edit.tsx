@@ -11,8 +11,9 @@ import {
 } from "remotion";
 import { Palabra, Subtitulos, useArribaSubtitulos } from "./Subtitulos";
 import { Cierre, colores, DestelloLuz, Escena, Escenas, estadoVideo, focoEn } from "./escenas";
+import { encuadrarEn, estadoDividida, mezclarRect, rectsDividida, tramosPersona } from "./escenas/camara";
 import { Titulo } from "./Titulo";
-import { BarraProgreso, Capitulos, EmojiPops, FlashCortes, escalaPunch } from "./Efectos";
+import { Banners, BarraProgreso, Capitulos, EmojiPops, FlashCortes, escalaPunch } from "./Efectos";
 import { estilo } from "./estilo";
 import { aReal, curvas, FPS_DISENO, useCuadro } from "./tiempo";
 import { rectSeguro, Zona } from "./formatos";
@@ -45,6 +46,10 @@ export type EditData = {
   // efectos de sonido al cuadro exacto (los arma scripts/sonidos.py)
   cues?: { f: number; archivo: string; recorte: number; vol: number }[];
   musica?: { archivo: string; volumen?: number; volumenHablando?: number };
+  areaVideo?: { x: number; y: number; w: number; h: number }; // dónde está la imagen real de la cámara (0-1)
+  banners?: { texto: string; desdeMs: number; hastaMs: number; estilo?: "pastilla" | "texto" | "vidrio" }[]; // textos fijos
+  pitidos?: { desdeMs: number; hastaMs: number }[]; // censura (el pitido lo pone scripts/mezcla.py)
+  personas?: { archivo: string; desde: number; hasta: number }[]; // persona recortada (segundos del video preparado)
 };
 
 // Música de fondo que baja sola cuando alguien habla ("ducking").
@@ -84,20 +89,45 @@ const Musica: React.FC<{ m: NonNullable<EditData["musica"]>; captions: Palabra[]
   );
 };
 
-const Clip: React.FC<{ seg: Segmento; index: number; video: string; origen: string }> = ({ seg, index, video, origen }) => {
+/** Zoom de cada clip: alterna en los cortes (para que no se note el salto) + un empujón al empezar.
+ *  Lo usan el video y la persona recortada, para que coincidan exacto. */
+const useZoomClip = (index: number) => {
   const frame = useCuadro(); // tiempo dentro de este clip, en cuadros de diseño
-  const { fps } = useVideoConfig();
   const zoomBase = estilo.zoomEnCortes && index % 2 === 1 ? estilo.zoomMaximo : 1;
-  // pequeño empuje al empezar cada clip
-  const empuje = interpolate(frame, [0, 6], [1.02, 1], {
-    extrapolateRight: "clamp",
-    easing: curvas.entra,
-  });
+  const empuje = interpolate(frame, [0, 6], [1.02, 1], { extrapolateRight: "clamp", easing: curvas.entra });
+  return zoomBase * empuje;
+};
+
+// La persona recortada (scripts/recorte_persona.py) encima de los títulos "detrás" y del fondo nuevo, solo en los
+// tramos donde hace falta. Cada pieza sabe de qué segundo del video original sale.
+const PersonaClip: React.FC<{ seg: Segmento; index: number; origen: string; tramos: { desde: number; hasta: number; archivo: string; trim: number }[] }> = ({
+  seg,
+  index,
+  origen,
+  tramos,
+}) => {
+  const zoom = useZoomClip(index);
+  return (
+    <AbsoluteFill style={{ transform: `scale(${zoom})`, transformOrigin: origen }}>
+      {tramos.map((t, i) => (
+        <Sequence key={i} from={t.desde} durationInFrames={t.hasta - t.desde} layout="none">
+          <AbsoluteFill>
+            <OffthreadVideo src={staticFile(t.archivo)} transparent muted trimBefore={t.trim} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+          </AbsoluteFill>
+        </Sequence>
+      ))}
+    </AbsoluteFill>
+  );
+};
+
+const Clip: React.FC<{ seg: Segmento; index: number; video: string; origen: string }> = ({ seg, index, video, origen }) => {
+  const { fps } = useVideoConfig();
+  const zoom = useZoomClip(index);
   const f = aReal(estilo.fundidoAudioFrames, fps); // el volumen se calcula en cuadros reales
   const d = seg.durationInFrames;
 
   return (
-    <AbsoluteFill style={{ transform: `scale(${zoomBase * empuje})`, transformOrigin: origen }}>
+    <AbsoluteFill style={{ transform: `scale(${zoom})`, transformOrigin: origen }}>
       <OffthreadVideo
         src={staticFile(video)}
         trimBefore={seg.trimBefore}
@@ -140,9 +170,69 @@ export const Edit: React.FC<{ data: EditData }> = ({ data }) => {
   const punch = escalaPunch(cuadro, FPS_DISENO, data.captions);
   const sfx = Boolean(data.sfx);
 
-  return (
-    <AbsoluteFill style={{ background: escenas.length ? colores.fondo : "black" }}>
-      {/* Video con corrección de color, zoom de golpe, y (con escenas) miniatura o acercamiento de cámara */}
+  // capas que van DETRÁS de la persona (necesitan el recorte): fondo nuevo y títulos con "detras": true
+  const detras = escenas.filter((e) => e.tipo === "fondo" || e.detras);
+  const delante = escenas.filter((e) => !(e.tipo === "fondo" || e.detras));
+  const ventanasDetras = detras.map((e) => ({ a: Math.round((e.desdeMs / 1000) * fps), b: Math.round((e.hastaMs / 1000) * fps) }));
+  // PANTALLA DIVIDIDA: la persona se va a su mitad (o a un círculo) con la cara centrada; el contenido lo pone la escena
+  const dv = estadoDividida(cuadro, FPS_DISENO, escenas);
+  const modo = dv.escena?.modo ?? (tv ? "lado" : "apilada");
+  const pip = dv.t > 0 && modo === "pip";
+  const contenido = (
+    <>
+      <AbsoluteFill style={{ transform: `scale(${punch})`, transformOrigin: origen, filter: cine ? estilo.cine.filtroColor : estilo.filtroColor }}>
+        {data.segments.map((seg, i) => (
+          <Sequence key={i} from={seg.from} durationInFrames={seg.durationInFrames}>
+            <Clip seg={seg} index={i} video={data.video} origen={origen} />
+          </Sequence>
+        ))}
+        {/* entre el video y la persona: fondo nuevo y títulos "detrás de la cabeza" */}
+        {detras.length ? <Escenas escenas={detras} sfx={sfx} /> : null}
+        {detras.length && data.personas?.length
+          ? data.segments.map((seg, i) => {
+              const tramos = tramosPersona(seg, ventanasDetras, data.personas ?? [], fps);
+              return tramos.length ? (
+                <Sequence key={`p${i}`} from={seg.from} durationInFrames={seg.durationInFrames}>
+                  <PersonaClip seg={seg} index={i} origen={origen} tramos={tramos} />
+                </Sequence>
+              ) : null;
+            })
+          : null}
+      </AbsoluteFill>
+      {estilo.vineta ? (
+        <AbsoluteFill style={{ background: "radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.45) 100%)" }} />
+      ) : null}
+    </>
+  );
+  let capaVideo: React.ReactNode;
+  if (dv.t > 0 && dv.escena) {
+    const { persona } = rectsDividida(modo, width, height, dv.escena.lado === "der" ? "der" : "izq");
+    const av = data.areaVideo ?? { x: 0, y: 0, w: 1, h: 1 };
+    const A = { x: av.x * width, y: av.y * height, w: av.w * width, h: av.h * height };
+    const enc = encuadrarEn(persona, A, { x: foco.x * width, y: foco.y * height });
+    const R = mezclarRect({ x: 0, y: 0, w: width, h: height }, persona, dv.t);
+    const escala = 1 + (enc.escala - 1) * dv.t;
+    capaVideo = (
+      <div
+        style={{
+          position: "absolute",
+          left: R.x,
+          top: R.y,
+          width: R.w,
+          height: R.h,
+          overflow: "hidden",
+          borderRadius: pip ? (R.w / 2) * dv.t : 0,
+          boxShadow: pip ? `0 20px 50px rgba(0,0,0,${0.55 * dv.t}), 0 0 0 ${6 * dv.t}px rgba(255,255,255,0.9)` : undefined,
+          background: "black",
+        }}
+      >
+        <div style={{ position: "absolute", left: enc.x * dv.t, top: enc.y * dv.t, width, height, transform: `scale(${escala})`, transformOrigin: "0 0" }}>
+          {contenido}
+        </div>
+      </div>
+    );
+  } else {
+    capaVideo = (
       <AbsoluteFill
         style={{
           transform: `translate(${ev.x}px, ${ev.y}px) scale(${ev.escala})`,
@@ -151,23 +241,30 @@ export const Edit: React.FC<{ data: EditData }> = ({ data }) => {
           boxShadow: ev.mini > 0 ? `0 40px 90px rgba(0,0,0,${0.6 * ev.mini})` : undefined,
         }}
       >
-        <AbsoluteFill style={{ transform: `scale(${punch})`, transformOrigin: origen, filter: cine ? estilo.cine.filtroColor : estilo.filtroColor }}>
-          {data.segments.map((seg, i) => (
-            <Sequence key={i} from={seg.from} durationInFrames={seg.durationInFrames}>
-              <Clip seg={seg} index={i} video={data.video} origen={origen} />
-            </Sequence>
-          ))}
-        </AbsoluteFill>
-        {estilo.vineta ? (
-          <AbsoluteFill style={{ background: "radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,0.45) 100%)" }} />
-        ) : null}
+        {contenido}
       </AbsoluteFill>
+    );
+  }
+
+  return (
+    <AbsoluteFill style={{ background: escenas.length ? colores.fondo : "black" }}>
+      {/* Video con corrección de color, zoom de golpe, y (con escenas) miniatura, acercamiento o pantalla dividida */}
+      {pip ? null : capaVideo}
       {cine ? null : <FlashCortes inicios={data.segments.map((s) => s.from)} />}
 
-      <Escenas escenas={escenas} sfx={sfx} />
+      <Escenas escenas={delante} sfx={sfx} />
+      {pip ? capaVideo : null /* en "pip" la cara va ENCIMA del contenido */}
+      <Banners banners={data.banners ?? []} dividida={modo === "apilada" ? dv.t : 0} zona={data.zonaSegura} />
 
       {cine ? null : <EmojiPops captions={data.captions} posicion={arribaSub} sfx={sfx} />}
-      <Subtitulos captions={data.captions} estilo={estiloSub} zona={data.zonaSegura} encuadre={data.encuadre} />
+      <Subtitulos
+        captions={data.captions}
+        estilo={estiloSub}
+        zona={data.zonaSegura}
+        encuadre={data.encuadre}
+        ocultar={escenas.filter((e) => e.tipo === "cinetica")}
+        dividida={modo === "apilada" ? dv.t : 0}
+      />
       <Capitulos capitulos={data.capitulos ?? []} top={topCapitulo} izquierda={seguro.x} sfx={sfx} />
 
       {data.gancho ? (

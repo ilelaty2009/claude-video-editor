@@ -1,0 +1,11 @@
+{
+ "tipo": "minimal",
+ "formato": "reel",
+ "musica": "calma",
+ "pasos": [
+  {"texto": "Cada paso parece pequeño", "visual": "barras", "valores": [2, 3, 4, 6, 8]},
+  {"texto": "hasta que miras hacia atrás", "visual": "linea", "valores": [1, 2, 2, 4, 5, 8, 12]},
+  {"texto": "Treinta días de estudio", "visual": "puntos", "numero": 30},
+  {"texto": "Un hábito a la vez", "visual": "circulo", "numero": 1}
+ ]
+}

@@ -84,6 +84,65 @@ def aplicar_correcciones(words, correcciones):
     return words
 
 
+def geometria_video(W, H, aspecto, encuadre, formato, rx=0.5):
+    """Dónde queda la imagen REAL de la cámara dentro del cuadro final y cómo se mueve un punto (0-1) del original.
+
+    Copia exacta de lo que hace scripts/editor.py -> filtro_video (completo, relleno, recorte). La usan los zooms,
+    el seguimiento de cara y la pantalla dividida (para encuadrar a la persona en su mitad).
+    """
+    if not aspecto:
+        return {"area": {"x": 0.0, "y": 0.0, "w": 1.0, "h": 1.0}, "punto": lambda fx, fy: (fx, fy)}
+    if encuadre == "completo":
+        if aspecto < W / H:  # barras a los lados
+            w = aspecto / (W / H)
+            area = {"x": (1 - w) / 2, "y": 0.0, "w": w, "h": 1.0}
+        else:  # barras arriba y abajo
+            h = (W / H) / aspecto
+            area = {"x": 0.0, "y": (1 - h) / 2, "w": 1.0, "h": h}
+        return {"area": area, "punto": lambda fx, fy: (area["x"] + fx * area["w"], area["y"] + fy * area["h"])}
+    if encuadre == "relleno":
+        if formato == "reel" or (not formato and H > W * 1.5):
+            bh = 880.0
+            ws = bh * aspecto  # ancho del video escalado a 880 de alto
+            wc = min(ws, W)  # lo que queda después de recortar los lados
+            ox = (ws - wc) * rx
+            top = max(0.0, H * 0.41 - bh / 2)
+            left = (W - wc) / 2
+            area = {"x": left / W, "y": top / H, "w": wc / W, "h": bh / H}
+            return {"area": area, "punto": lambda fx, fy: ((left + fx * ws - ox) / W, (top + fy * bh) / H)}
+        bh = W / aspecto
+        top = max(0.0, H * 0.42 - bh / 2)
+        area = {"x": 0.0, "y": top / H, "w": 1.0, "h": min(1.0, bh / H)}
+        return {"area": area, "punto": lambda fx, fy: (fx, (top + fy * bh) / H)}
+    # recorte: el video llena el cuadro, recortado y centrado en la cara (rx)
+    ws = max(W, H * aspecto)
+    hs = max(H, W / aspecto)
+    return {"area": {"x": 0.0, "y": 0.0, "w": 1.0, "h": 1.0},
+            "punto": lambda fx, fy: ((fx * ws - (ws - W) * rx) / W, (fy * hs - (hs - H) / 2) / H)}
+
+
+# Groserías que se tapan con "censurar": true (además de las que se pongan a mano en la lista)
+GROSERIAS = {
+    "mierda", "puta", "puto", "putas", "putos", "hijueputa", "malparido", "malparida", "gonorrea", "carajo", "verga",
+    "marica", "pendejo", "pendeja", "cabron", "cabrón", "joder", "coño", "culo", "chimba",
+    "fuck", "fucking", "shit", "bitch", "damn", "ass", "asshole", "dick",
+}
+
+
+def censurar(captions, lista):
+    """Tapa groserías: el subtítulo queda "m****" y se marca el tramo para un pitido (la voz se silencia ahí)."""
+    pitidos = []
+    for c in captions:
+        limpio = norm(c["text"])
+        if limpio and limpio in lista:
+            t = c["text"].strip()
+            m = re.match(r"^(\W*)(\w)(\w*)(\W*)$", t)
+            c["text"] = " " + (f"{m.group(1)}{m.group(2)}{'*' * len(m.group(3))}{m.group(4)}" if m else "****")
+            c["censurada"] = True
+            pitidos.append({"desdeMs": c["startMs"] - 20, "hastaMs": c["endMs"] + 20})
+    return pitidos
+
+
 def ruta_foco(caras, segmentos, fps, ajustar, paso_s=0.5):
     """Recorrido suave de la cara principal en el video EDITADO: [{"f": cuadro, "x", "y"}].
 
@@ -152,7 +211,7 @@ def main() -> None:
     extras = json.load(open(args.extras, encoding="utf-8")) if args.extras and os.path.exists(args.extras) else {}
     estilo = cfg["estilos"].get(args.estilo or extras.get("estilo", ""), {})
     for clave, valor in estilo.items():
-        if clave != "color":
+        if clave not in ("color", "silencio"):
             extras.setdefault(clave, valor)  # lo que diga extras manda sobre el estilo
     if args.subtitulos:
         extras["subtitulos"] = args.subtitulos  # la línea de comandos manda sobre todo
@@ -222,6 +281,10 @@ def main() -> None:
 
     # 2) el video completo, empezando después del gancho
     segments, captions, out_frame = armar(words, gancho_frames)
+    if extras.get("desfaseSubtitulos"):  # ajuste a mano de los subtítulos (no mueve los cortes): ms, positivo = más tarde
+        for c in cap_gancho + captions:
+            for k in ("startMs", "endMs", "timestampMs"):
+                c[k] = max(0, round(c[k] + float(extras["desfaseSubtitulos"])))
     # 3) palabras destacadas (color, emoji, zoom)
     for d in extras.get("destacadas", []):
         objetivo = [norm(x) for x in d["palabra"].split() if norm(x)]
@@ -232,6 +295,8 @@ def main() -> None:
                 for k in range(len(objetivo)):
                     captions[i + k]["color"] = d.get("color", "#39FF88")
                     captions[i + k]["destacada"] = True
+                    if d.get("caja"):  # la palabra dentro de una caja de color (como en los reels de tutoriales)
+                        captions[i + k]["caja"] = True
                 if d.get("emoji"):
                     captions[i]["emoji"] = d["emoji"]
                 if d.get("zoom", True):
@@ -251,19 +316,25 @@ def main() -> None:
         return round(a_salida(float(t)) * 1000)
 
     escenas = []
-    for e in extras.get("escenas", []):
+    for n_extra, e in enumerate(extras.get("escenas", [])):
         e = dict(e)
+        e["idExtra"] = n_extra  # posición en los extras: así las notas del storyboard vuelven a la escena correcta
         desde = float(e.pop("desde"))
         hasta = float(e.pop("hasta", desde + 3))
         e["desdeMs"], e["hastaMs"] = a_ms(desde), a_ms(hasta)
         if e["hastaMs"] - e["desdeMs"] < 300:  # quedó casi toda en un silencio cortado
             e["hastaMs"] = e["desdeMs"] + 1500
-        for clave in ("lineas", "tarjetas", "items"):
+        for clave in ("lineas", "tarjetas", "items", "nodos"):
             for item in e.get(clave, []) or []:
                 if "en" in item:
                     item["enMs"] = a_ms(item.pop("en"))
         escenas.append(e)
     escenas.sort(key=lambda e: e["desdeMs"])
+    # frase cinética: si no trae "palabras", usa lo que se DICE en ese tramo, cada palabra en su instante exacto
+    for e in escenas:
+        if e["tipo"] == "cinetica" and not e.get("palabras"):
+            e["palabras"] = [{"texto": c["text"].strip(), "enMs": c["startMs"]} for c in captions
+                             if e["desdeMs"] - 50 <= c["startMs"] < e["hastaMs"]]
 
     capitulos = [
         {"desdeMs": round(a_salida(float(c["desde"])) * 1000), "texto": c["texto"]} for c in extras.get("capitulos", [])
@@ -275,6 +346,14 @@ def main() -> None:
         {"golpe": int(round(a_salida(float(x["en"])) * fps)), "archivo": x["archivo"], "vol": float(x.get("vol", 0.3)),
          "que": x.get("que", "sonido especial")}
         for x in extras.get("sonidos", [])
+    ]
+    # banners fijos (el gancho que se queda en pantalla, la llamada a la acción del final): tiempos del ORIGINAL
+    banners_crudos = extras.get("banners") or ([{"texto": extras["banner"]}] if extras.get("banner") else [])
+    banners = [
+        {"texto": b["texto"], "estilo": b.get("estilo", "pastilla"),
+         "desdeMs": a_ms(b["desde"]) if "desde" in b else 0,
+         "hastaMs": a_ms(b["hasta"]) if "hasta" in b else round(out_frame / fps * 1000)}
+        for b in banners_crudos
     ]
 
     # 5) RITMO ("pattern interrupts", como los editores de MrBeast): que nunca pasen más de N segundos sin un cambio
@@ -303,6 +382,14 @@ def main() -> None:
 
     segments = seg_gancho + segments
     captions = cap_gancho + captions
+    # Los subtítulos nunca se adelantan a la voz: Whisper suele marcar cada palabra unos milisegundos ANTES de que
+    # suene. scripts/sincronia.py lo midió contra el audio; aquí se atrasan justo eso (máximo 100 ms).
+    ajuste_fino = 0.0
+    if not data.get("sincroniaMs") and not extras.get("desfaseSubtitulos"):
+        ajuste_fino = max(0.0, min(100.0, float(data.get("desfaseMedidoMs", 0) or 0)))
+        for c in captions:
+            for k in ("startMs", "endMs", "timestampMs"):
+                c[k] = round(c[k] + ajuste_fino)
 
     formato = cfg["formatos"].get(args.formato, {})
     edit = {
@@ -333,19 +420,24 @@ def main() -> None:
         except Exception:
             aspecto = None
 
+    rx = 0.5
+    if args.caras and os.path.exists(args.caras):
+        rx = float(json.load(open(args.caras, encoding="utf-8")).get("recorte_x", 0.5))
+    geo = geometria_video(args.ancho, args.alto, aspecto, args.encuadre, args.formato, rx)
+    edit["areaVideo"] = {k: round(v, 4) for k, v in geo["area"].items()}
+    if banners:  # (a_ms ya cuenta el gancho: los segmentos del video normal empiezan después de él)
+        edit["banners"] = banners
+    if extras.get("censurar"):
+        c = extras["censurar"]
+        lista = set(GROSERIAS) | ({norm(x) for x in c} if isinstance(c, list) else set())
+        edit["pitidos"] = censurar(edit["captions"], {norm(x) for x in lista})
+        if edit["pitidos"]:
+            print(f"CENSURA: {len(edit['pitidos'])} palabra(s) tapadas con pitido.")
+
     def ajustar(fx, fy):
-        """Pasa un punto del video original (0-1) a dónde quedó en el formato final."""
-        salida_aspecto = args.ancho / args.alto
-        if aspecto and args.encuadre in ("completo", "relleno"):
-            if args.encuadre == "relleno":
-                return 0.5, 0.4
-            if aspecto < salida_aspecto:  # barras a los lados
-                fx = 0.5 + (fx - 0.5) * aspecto / salida_aspecto
-            else:  # barras arriba y abajo
-                fy = 0.5 + (fy - 0.5) * salida_aspecto / aspecto
-        elif args.encuadre == "recorte":
-            fx = 0.5  # el recorte ya se centró en la cara
-        return round(fx, 3), round(fy, 3)
+        """Pasa un punto del video original (0-1) a dónde quedó en el formato final (igual que lo prepara editor.py)."""
+        x, y = geo["punto"](fx, fy)
+        return round(min(1.0, max(0.0, x)), 3), round(min(1.0, max(0.0, y)), 3)
 
     if extras.get("foco"):
         edit["foco"] = {"x": float(extras["foco"].get("x", 0.5)), "y": float(extras["foco"].get("y", 0.45))}
@@ -414,6 +506,28 @@ def main() -> None:
         + (f"; agregué {automaticos} acercamientos automáticos" if automaticos else "")
         + (f". Gancho al inicio: {gancho_frames / fps:.1f} s" if gancho_frames else "")
     )
+    print(revisar_gancho(edit))
+    if ajuste_fino:
+        print(f"SUBTÍTULOS: atrasados {ajuste_fino:.0f} ms para caer justo con la voz (medido contra el audio).")
+
+
+def revisar_gancho(edit):
+    """Los primeros 3 s deciden si la gente se queda: ¿hay algo que enganche (título, gancho, banner o escena)?"""
+    tiene = []
+    if edit.get("titulo"):
+        tiene.append("título")
+    if edit.get("gancho"):
+        tiene.append("gancho (cold open)")
+    if any(b["desdeMs"] < 3000 for b in edit.get("banners", [])):
+        tiene.append("banner")
+    if any(e["desdeMs"] < 3000 and not e.get("auto") for e in edit.get("escenas", [])):
+        tiene.append("escena")
+    if any(c.get("emoji") and c["startMs"] < 3000 for c in edit.get("captions", [])):
+        tiene.append("palabra destacada")
+    if tiene:
+        return "GANCHO: los primeros 3 s tienen " + ", ".join(tiene) + "."
+    return ("AVISO GANCHO: en los primeros 3 s no hay título, gancho, banner ni escena (solo la persona hablando). "
+            "Agrega un \"titulo\" o un \"banner\": ahí se decide si la gente se queda.")
 
 
 if __name__ == "__main__":

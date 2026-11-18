@@ -55,6 +55,9 @@ def _con_ffprobe(ruta: str) -> Optional[Dict]:
         "tiene_audio": audio is not None,
         "cuadros": cuadros,
         "codec": video.get("codec_name") if video else None,
+        # HDR (iPhone graba en HDR por defecto): hay que convertirlo, si no la piel sale gris o quemada
+        "hdr": bool(video) and video.get("color_transfer") in ("arib-std-b67", "smpte2084"),
+        "transferencia": (video or {}).get("color_transfer"),
     }
 
 
@@ -77,6 +80,8 @@ def _con_ffmpeg(ruta: str) -> Dict:
         "tiene_audio": re.search(r"Stream #.*?Audio:", err) is not None,
         "cuadros": None,
         "codec": None,
+        "hdr": re.search(r"Video:[^\n]*(arib-std-b67|smpte2084)", err) is not None,
+        "transferencia": (re.search(r"Video:[^\n]*(arib-std-b67|smpte2084)", err) or [None, None])[1],
     }
 
 
@@ -85,6 +90,17 @@ def info(ruta: str) -> Dict:
     if not datos["tiene_video"] and not datos["tiene_audio"]:
         raise ErrorMedio(f"{ruta} no tiene ni video ni audio (¿archivo dañado?).")
     return datos
+
+
+_FILTROS: Dict[str, bool] = {}
+
+
+def tiene_filtro(nombre: str) -> bool:
+    """¿El ffmpeg de este computador trae este filtro? (p. ej. zscale para convertir HDR)."""
+    if nombre not in _FILTROS:
+        r = subprocess.run(["ffmpeg", "-hide_banner", "-filters"], capture_output=True, text=True)
+        _FILTROS[nombre] = re.search(rf"\s{re.escape(nombre)}\s", r.stdout) is not None
+    return _FILTROS[nombre]
 
 
 def contar_cuadros(ruta: str) -> int:

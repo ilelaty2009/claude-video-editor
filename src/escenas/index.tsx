@@ -6,6 +6,8 @@ import React from "react";
 import { AbsoluteFill, Sequence, useVideoConfig } from "remotion";
 import { EscenaTitular } from "./base";
 import { EscenaBroll } from "./broll";
+import { EscenaAnotacion, EscenaCinetica, EscenaCollage, EscenaDiagrama, EscenaVentana } from "./extra";
+import { EscenaCapa, EscenaCta, EscenaDividida, EscenaFondo, EscenaGrafica, EscenaMapa, EscenaPantalla } from "./datos";
 import { EscenaEngranajes, EscenaIconos, EscenaTarjetas } from "./graficos";
 import { EscenaLineaTiempo, EscenaLista } from "./listas";
 import { EscenaChat, EscenaCita, EscenaMiniatura, EscenaNombre, EscenaNumero } from "./texto";
@@ -32,6 +34,18 @@ const componentes: Record<Exclude<TipoEscena, "zoom">, React.FC<{ e: Escena }>> 
   lista: ({ e }) => <EscenaLista e={e} />,
   linea_tiempo: ({ e }) => <EscenaLineaTiempo e={e} />,
   broll: ({ e }) => <EscenaBroll e={e} />,
+  dividida: ({ e }) => <EscenaDividida e={e} />,
+  grafica: ({ e }) => <EscenaGrafica e={e} />,
+  mapa: ({ e }) => <EscenaMapa e={e} />,
+  cta: ({ e }) => <EscenaCta e={e} />,
+  fondo: ({ e }) => <EscenaFondo e={e} />,
+  pantalla: ({ e }) => <EscenaPantalla e={e} />,
+  cinetica: ({ e }) => <EscenaCinetica e={e} />,
+  diagrama: ({ e }) => <EscenaDiagrama e={e} />,
+  ventana: ({ e }) => <EscenaVentana e={e} />,
+  collage: ({ e }) => <EscenaCollage e={e} />,
+  anotacion: ({ e }) => <EscenaAnotacion e={e} />,
+  capa: ({ e }) => <EscenaCapa e={e} />,
 };
 
 // ---------- DISEÑO DE SONIDO ----------
